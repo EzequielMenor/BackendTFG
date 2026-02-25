@@ -27,6 +27,7 @@ public class Routine {
   @Column(columnDefinition = "TEXT")
   private String description;
 
+  @Builder.Default
   @Column(name = "is_public")
   private Boolean isPublic = false;
 

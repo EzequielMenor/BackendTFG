@@ -1,16 +1,10 @@
 package com.eze.gymanalytics.api.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "series")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Serie {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,4 +27,64 @@ public class Serie {
 
   @Column(name = "set_order", nullable = false)
   private Integer setOrder;
+
+  public Serie() {
+  }
+
+  // Getters and Setters
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  public WorkoutExercise getWorkoutExercise() {
+    return workoutExercise;
+  }
+
+  public void setWorkoutExercise(WorkoutExercise workoutExercise) {
+    this.workoutExercise = workoutExercise;
+  }
+
+  public BigDecimal getWeight() {
+    return weight;
+  }
+
+  public void setWeight(BigDecimal weight) {
+    this.weight = weight;
+  }
+
+  public Integer getReps() {
+    return reps;
+  }
+
+  public void setReps(Integer reps) {
+    this.reps = reps;
+  }
+
+  public BigDecimal getRpe() {
+    return rpe;
+  }
+
+  public void setRpe(BigDecimal rpe) {
+    this.rpe = rpe;
+  }
+
+  public Boolean getIsWarmup() {
+    return isWarmup;
+  }
+
+  public void setIsWarmup(Boolean isWarmup) {
+    this.isWarmup = isWarmup;
+  }
+
+  public Integer getSetOrder() {
+    return setOrder;
+  }
+
+  public void setSetOrder(Integer setOrder) {
+    this.setOrder = setOrder;
+  }
 }

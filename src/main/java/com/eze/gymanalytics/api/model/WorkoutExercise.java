@@ -1,16 +1,10 @@
 package com.eze.gymanalytics.api.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.util.List;
 
 @Entity
 @Table(name = "workout_exercises")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class WorkoutExercise {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +26,25 @@ public class WorkoutExercise {
 
   @OneToMany(mappedBy = "workoutExercise", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Serie> series;
+
+  public WorkoutExercise() {}
+
+  // Getters and Setters
+  public Long getId() { return id; }
+  public void setId(Long id) { this.id = id; }
+
+  public Workout getWorkout() { return workout; }
+  public void setWorkout(Workout workout) { this.workout = workout; }
+
+  public Exercise getExercise() { return exercise; }
+  public void setExercise(Exercise exercise) { this.exercise = exercise; }
+
+  public Integer getExerciseOrder() { return exerciseOrder; }
+  public void setExerciseOrder(Integer exerciseOrder) { this.exerciseOrder = exerciseOrder; }
+
+  public String getNotes() { return notes; }
+  public void setNotes(String notes) { this.notes = notes; }
+
+  public List<Serie> getSeries() { return series; }
+  public void setSeries(List<Serie> series) { this.series = series; }
 }
