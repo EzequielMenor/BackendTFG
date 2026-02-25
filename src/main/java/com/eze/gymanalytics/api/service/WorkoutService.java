@@ -34,10 +34,10 @@ public class WorkoutService {
     private final SerieRepository serieRepository;
 
     public WorkoutService(WorkoutRepository workoutRepository,
-                          ExerciseRepository exerciseRepository,
-                          ProfileRepository profileRepository,
-                          WorkoutExerciseRepository workoutExerciseRepository,
-                          SerieRepository serieRepository) {
+            ExerciseRepository exerciseRepository,
+            ProfileRepository profileRepository,
+            WorkoutExerciseRepository workoutExerciseRepository,
+            SerieRepository serieRepository) {
         this.workoutRepository = workoutRepository;
         this.exerciseRepository = exerciseRepository;
         this.profileRepository = profileRepository;
@@ -63,7 +63,7 @@ public class WorkoutService {
         if (workoutDTO.getExercises() != null && !workoutDTO.getExercises().isEmpty()) {
             List<WorkoutExercise> weListToSave = new ArrayList<>();
             for (WorkoutExerciseDTO exerciseDTO : workoutDTO.getExercises()) {
-                
+
                 Exercise exercise = exerciseRepository.findById(exerciseDTO.getExerciseId())
                         .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
 
@@ -72,13 +72,13 @@ public class WorkoutService {
                 we.setExercise(exercise);
                 we.setExerciseOrder(exerciseDTO.getExerciseOrder());
                 we.setNotes(exerciseDTO.getNotes());
-                
+
                 WorkoutExercise savedWe = workoutExerciseRepository.save(we);
                 weListToSave.add(savedWe);
 
                 if (exerciseDTO.getSeries() != null && !exerciseDTO.getSeries().isEmpty()) {
                     List<Serie> seriesToSave = new ArrayList<>();
-                    
+
                     for (SerieDTO serieDTO : exerciseDTO.getSeries()) {
                         Serie serie = new Serie();
                         serie.setWorkoutExercise(savedWe);
@@ -87,7 +87,7 @@ public class WorkoutService {
                         serie.setRpe(serieDTO.getRpe());
                         serie.setIsWarmup(serieDTO.getIsWarmup());
                         serie.setSetOrder(serieDTO.getSetOrder());
-                        
+
                         if (serie.getWeight() != null && serie.getReps() != null) {
                             BigDecimal serieVolume = serie.getWeight().multiply(new BigDecimal(serie.getReps()));
                             savedWorkout.setTotalVolume(savedWorkout.getTotalVolume().add(serieVolume));
@@ -96,7 +96,7 @@ public class WorkoutService {
                         seriesToSave.add(serie);
                     }
                     serieRepository.saveAll(seriesToSave);
-                    savedWe.setSeries(seriesToSave); 
+                    savedWe.setSeries(seriesToSave);
                 }
             }
             savedWorkout.setWorkoutExercises(weListToSave);
@@ -106,10 +106,11 @@ public class WorkoutService {
         return convertToDTO(savedWorkout);
     }
 
-    public Page<WorkoutDTO> getUserWorkouts(String userEmail, Pageable pageable, OffsetDateTime startDate, OffsetDateTime endDate) {
+    public Page<WorkoutDTO> getUserWorkouts(String userEmail, Pageable pageable, OffsetDateTime startDate,
+            OffsetDateTime endDate) {
         Profile user = profileRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-                
+
         Page<Workout> workoutsPage;
 
         if (startDate != null && endDate != null) {
@@ -126,11 +127,11 @@ public class WorkoutService {
     public void deleteWorkout(Long id, String userEmail) {
         Workout workout = workoutRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Workout no encontrado"));
-                
+
         if (!workout.getUser().getEmail().equals(userEmail)) {
             throw new RuntimeException("No tienes permiso para borrar este workout");
         }
-        
+
         workoutRepository.delete(workout);
     }
 
@@ -142,12 +143,12 @@ public class WorkoutService {
         dto.setEndTime(workout.getEndTime());
         dto.setNotes(workout.getNotes());
         dto.setTotalVolume(workout.getTotalVolume());
-        
-        if(workout.getWorkoutExercises() != null) {
-           List<WorkoutExerciseDTO> exerciseDTOs = workout.getWorkoutExercises().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-           dto.setExercises(exerciseDTOs);
+
+        if (workout.getWorkoutExercises() != null) {
+            List<WorkoutExerciseDTO> exerciseDTOs = workout.getWorkoutExercises().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            dto.setExercises(exerciseDTOs);
         }
 
         return dto;
@@ -161,13 +162,13 @@ public class WorkoutService {
         dto.setExerciseOrder(we.getExerciseOrder());
         dto.setNotes(we.getNotes());
 
-        if(we.getSeries() != null) {
+        if (we.getSeries() != null) {
             List<SerieDTO> seriesDTOs = we.getSeries().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
             dto.setSeries(seriesDTOs);
         }
-        
+
         return dto;
     }
 
