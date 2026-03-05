@@ -1,5 +1,6 @@
 package com.eze.gymanalytics.api.service;
 
+import com.eze.gymanalytics.api.dto.ImportResultDTO;
 import com.eze.gymanalytics.api.model.*;
 import com.eze.gymanalytics.api.repository.*;
 import org.apache.commons.csv.CSVFormat;
@@ -43,7 +44,7 @@ public class ImportService {
       Locale.ENGLISH);
 
   @Transactional
-  public void importHevyCsv(MultipartFile file, String userEmail) {
+  public ImportResultDTO importHevyCsv(MultipartFile file, String userEmail) {
     Profile user = profileRepository.findByEmail(userEmail)
         .orElseGet(() -> {
           Profile newProfile = new Profile();
@@ -53,6 +54,16 @@ public class ImportService {
           newProfile.setRole("user");
           return profileRepository.save(newProfile);
         });
+
+    // Pre-cargar todos los ejercicios en un Map para evitar N queries al buscar por nombre.
+    // Clave: nombre normalizado (lowercase); Valor: entidad Exercise.
+    Map<String, Exercise> exerciseCache = new HashMap<>();
+    exerciseRepository.findAll().forEach(ex ->
+        exerciseCache.put(ex.getName().toLowerCase(), ex)
+    );
+
+    List<String> failedRows = new ArrayList<>();
+    int successCount = 0;
 
     try (
         BufferedReader reader = new BufferedReader(
@@ -65,60 +76,70 @@ public class ImportService {
       List<Serie> allSeries = new ArrayList<>();
 
       for (CSVRecord record : csvParser) {
-        String startTimeStr = record.get("start_time");
-        String exerciseName = record.get("exercise_title");
+        try {
+          String startTimeStr = record.get("start_time");
+          String exerciseName = record.get("exercise_title");
 
-        // 1. WORKOUT (Iniciamos volumen a 0)
-        Workout workout = workoutMap.computeIfAbsent(startTimeStr, k -> {
-          Workout w = createWorkout(record, user);
-          w.setTotalVolume(BigDecimal.ZERO);
-          return workoutRepository.save(w);
-        });
+          // 1. WORKOUT
+          Workout workout = workoutMap.computeIfAbsent(startTimeStr, k -> {
+            Workout w = createWorkout(record, user);
+            w.setTotalVolume(BigDecimal.ZERO);
+            return workoutRepository.save(w);
+          });
 
-        // 2. WORKOUT_EXERCISE
-        String weKey = startTimeStr + exerciseName;
-        WorkoutExercise we = workoutExerciseMap.computeIfAbsent(weKey, k -> {
-          Exercise exercise = exerciseRepository.findByNameContainingIgnoreCase(exerciseName)
-              .stream().findFirst()
-              .orElseGet(() -> {
-                Exercise newEx = new Exercise();
-                newEx.setName(exerciseName);
-                newEx.setMuscleGroup("Otros");
-                newEx.setDescription("Creado automáticamente");
-                return exerciseRepository.save(newEx);
-              });
+          // 2. WORKOUT_EXERCISE — resolución de ejercicio desde cache (sin query extra)
+          String weKey = startTimeStr + exerciseName;
+          WorkoutExercise we = workoutExerciseMap.computeIfAbsent(weKey, k -> {
+            Exercise exercise = exerciseCache.computeIfAbsent(
+                exerciseName.toLowerCase(),
+                name -> {
+                  Exercise newEx = new Exercise();
+                  newEx.setName(exerciseName);
+                  newEx.setMuscleGroup("Otros");
+                  newEx.setDescription("Creado automáticamente");
+                  return exerciseRepository.save(newEx);
+                }
+            );
 
-          WorkoutExercise newWe = new WorkoutExercise();
-          newWe.setWorkout(workout);
-          newWe.setExercise(exercise);
-          newWe.setExerciseOrder(workoutExerciseMap.size() + 1);
-          newWe.setNotes(record.get("exercise_notes"));
-          return workoutExerciseRepository.save(newWe);
-        });
+            WorkoutExercise newWe = new WorkoutExercise();
+            newWe.setWorkout(workout);
+            newWe.setExercise(exercise);
+            newWe.setExerciseOrder(workoutExerciseMap.size() + 1);
+            newWe.setNotes(record.get("exercise_notes"));
+            return workoutExerciseRepository.save(newWe);
+          });
 
-        // 3. SERIE
-        Serie serie = new Serie();
-        serie.setWorkoutExercise(we);
-        serie.setSetOrder(Integer.parseInt(record.get("set_index")));
-        serie.setWeight(parseBigDecimal(record.get("weight_kg")));
-        serie.setReps(parseInteger(record.get("reps")));
-        serie.setRpe(parseBigDecimal(record.get("rpe")));
-        serie.setIsWarmup(record.get("set_type").equalsIgnoreCase("warmup"));
+          // 3. SERIE
+          Serie serie = new Serie();
+          serie.setWorkoutExercise(we);
+          serie.setSetOrder(Integer.parseInt(record.get("set_index")));
+          serie.setWeight(parseBigDecimal(record.get("weight_kg")));
+          serie.setReps(parseInteger(record.get("reps")));
+          serie.setRpe(parseBigDecimal(record.get("rpe")));
+          serie.setIsWarmup(record.get("set_type").equalsIgnoreCase("warmup"));
 
-        // CALCULAR VOLUMEN Y SUMAR AL WORKOUT
-        BigDecimal serieVolume = serie.getWeight().multiply(new BigDecimal(serie.getReps()));
-        workout.setTotalVolume(workout.getTotalVolume().add(serieVolume));
+          BigDecimal serieVolume = serie.getWeight().multiply(new BigDecimal(serie.getReps()));
+          workout.setTotalVolume(workout.getTotalVolume().add(serieVolume));
 
-        allSeries.add(serie);
+          allSeries.add(serie);
+          successCount++;
+
+        } catch (Exception e) {
+          // Una fila mal formada no aborta la importación completa
+          failedRows.add("Fila " + record.getRecordNumber() + ": " + e.getMessage());
+        }
       }
 
-      // Guardamos las series y actualizamos los entrenamientos con el volumen final
+      // Batch save: series en lotes de 500 según config de Hibernate
       serieRepository.saveAll(allSeries);
+      // Actualizar volumen total de todos los workouts
       workoutRepository.saveAll(workoutMap.values());
 
     } catch (Exception e) {
-      throw new RuntimeException("Error al procesar el CSV: " + e.getMessage());
+      throw new RuntimeException("Error al leer el CSV: " + e.getMessage());
     }
+
+    return new ImportResultDTO(successCount, failedRows.size(), failedRows);
   }
 
   private Workout createWorkout(CSVRecord record, Profile user) {

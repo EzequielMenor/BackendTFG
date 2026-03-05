@@ -1,5 +1,6 @@
 package com.eze.gymanalytics.api.controller;
 
+import com.eze.gymanalytics.api.dto.ImportResultDTO;
 import com.eze.gymanalytics.api.service.ImportService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,17 +18,15 @@ public class ImportController {
     }
 
     @PostMapping("/hevy")
-    public ResponseEntity<String> importHevy(
+    public ResponseEntity<ImportResultDTO> importHevy(
         @RequestParam("file") MultipartFile file,
         @AuthenticationPrincipal String email
     ) {
         try {
-            importService.importHevyCsv(file, email);
-            return ResponseEntity.ok("Importación completada con éxito");
+            ImportResultDTO result = importService.importHevyCsv(file, email);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(
-                "Error: " + e.getMessage()
-            );
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
