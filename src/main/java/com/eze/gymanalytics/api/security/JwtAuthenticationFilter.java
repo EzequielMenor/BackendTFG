@@ -23,7 +23,7 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${supabase.key}")
+    @Value("${supabase.jwt-secret}")
     private String jwtSecret;
 
     @Override
