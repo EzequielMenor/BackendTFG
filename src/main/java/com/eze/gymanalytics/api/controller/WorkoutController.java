@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -23,7 +24,7 @@ public class WorkoutController {
 
     @PostMapping
     public ResponseEntity<WorkoutDTO> createWorkout(@RequestBody WorkoutDTO workoutDTO,
-                                                    @RequestParam("email") String email) {
+                                                    @AuthenticationPrincipal String email) {
         try {
             WorkoutDTO createdWorkout = workoutService.createWorkout(workoutDTO, email);
             return ResponseEntity.ok(createdWorkout);
@@ -34,7 +35,7 @@ public class WorkoutController {
 
     @GetMapping
     public ResponseEntity<?> getWorkouts(
-            @RequestParam("email") String email,
+            @AuthenticationPrincipal String email,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
@@ -50,7 +51,7 @@ public class WorkoutController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteWorkout(@PathVariable Long id, @RequestParam("email") String email) {
+    public ResponseEntity<String> deleteWorkout(@PathVariable Long id, @AuthenticationPrincipal String email) {
         try {
             workoutService.deleteWorkout(id, email);
             return ResponseEntity.ok("Entrenamiento borrado correctamente");

@@ -2,6 +2,7 @@ package com.eze.gymanalytics.api.controller;
 
 import com.eze.gymanalytics.api.service.ImportService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +19,7 @@ public class ImportController {
     @PostMapping("/hevy")
     public ResponseEntity<String> importHevy(
         @RequestParam("file") MultipartFile file,
-        @RequestParam("email") String email
+        @AuthenticationPrincipal String email
     ) {
         try {
             importService.importHevyCsv(file, email);
