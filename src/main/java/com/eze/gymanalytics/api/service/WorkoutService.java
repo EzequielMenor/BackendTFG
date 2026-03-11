@@ -1,8 +1,10 @@
 package com.eze.gymanalytics.api.service;
 
+import com.eze.gymanalytics.api.dto.ExerciseInfoDTO;
 import com.eze.gymanalytics.api.dto.SerieDTO;
 import com.eze.gymanalytics.api.dto.WorkoutDTO;
 import com.eze.gymanalytics.api.dto.WorkoutExerciseDTO;
+import com.eze.gymanalytics.api.dto.mapper.WorkoutMapper;
 import com.eze.gymanalytics.api.model.Exercise;
 import com.eze.gymanalytics.api.model.Profile;
 import com.eze.gymanalytics.api.model.Serie;
@@ -13,6 +15,9 @@ import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.repository.SerieRepository;
 import com.eze.gymanalytics.api.repository.WorkoutExerciseRepository;
 import com.eze.gymanalytics.api.repository.WorkoutRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,17 +37,20 @@ public class WorkoutService {
     private final ProfileRepository profileRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final SerieRepository serieRepository;
+    private final WorkoutMapper workoutMapper;
 
     public WorkoutService(WorkoutRepository workoutRepository,
             ExerciseRepository exerciseRepository,
             ProfileRepository profileRepository,
             WorkoutExerciseRepository workoutExerciseRepository,
-            SerieRepository serieRepository) {
+            SerieRepository serieRepository,
+            WorkoutMapper workoutMapper) {
         this.workoutRepository = workoutRepository;
         this.exerciseRepository = exerciseRepository;
         this.profileRepository = profileRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.serieRepository = serieRepository;
+        this.workoutMapper = workoutMapper;
     }
 
     @Transactional
@@ -157,10 +165,14 @@ public class WorkoutService {
     private WorkoutExerciseDTO convertToDTO(WorkoutExercise we) {
         WorkoutExerciseDTO dto = new WorkoutExerciseDTO();
         dto.setId(we.getId());
-        dto.setExerciseId(we.getExercise().getId());
-        dto.setExerciseName(we.getExercise().getName());
         dto.setExerciseOrder(we.getExerciseOrder());
         dto.setNotes(we.getNotes());
+        if (we.getExercise() != null) {
+            ExerciseInfoDTO exInfo = new ExerciseInfoDTO();
+            exInfo.setName(we.getExercise().getName());
+            exInfo.setMuscleGroup(we.getExercise().getMuscleGroup());
+            dto.setExercise(exInfo);
+        }
 
         if (we.getSeries() != null) {
             List<SerieDTO> seriesDTOs = we.getSeries().stream()
@@ -181,5 +193,13 @@ public class WorkoutService {
         dto.setIsWarmup(serie.getIsWarmup());
         dto.setSetOrder(serie.getSetOrder());
         return dto;
+    }
+
+    public WorkoutDTO getWorkoutByIdAndUser(Long id, String email) {
+        Workout workout = workoutRepository.findByIdAndUserEmail(id, email)
+                .orElseThrow(() -> new EntityNotFoundException("Entrenamiento no encontrado o acceso denegado"));
+
+        // Convertimos la entidad a DTO antes de enviarla al Controller
+        return workoutMapper.toDTO(workout);
     }
 }

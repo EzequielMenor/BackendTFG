@@ -40,8 +40,10 @@ public class ImportService {
     this.serieRepository = serieRepository;
   }
 
-  private static final DateTimeFormatter HEVY_DATE_FORMATTER = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm",
-      Locale.ENGLISH);
+  private static final DateTimeFormatter HEVY_DATE_FORMATTER = new java.time.format.DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .appendPattern("d MMM yyyy, HH:mm")
+      .toFormatter(new Locale("es"));
 
   @Transactional
   public ImportResultDTO importHevyCsv(MultipartFile file, String userEmail) {

@@ -24,7 +24,7 @@ public class WorkoutController {
 
     @PostMapping
     public ResponseEntity<WorkoutDTO> createWorkout(@RequestBody WorkoutDTO workoutDTO,
-                                                    @AuthenticationPrincipal String email) {
+            @AuthenticationPrincipal String email) {
         try {
             WorkoutDTO createdWorkout = workoutService.createWorkout(workoutDTO, email);
             return ResponseEntity.ok(createdWorkout);
@@ -48,6 +48,14 @@ public class WorkoutController {
             e.printStackTrace(); // Para ver el error exacto en la terminal del server
             return ResponseEntity.badRequest().body("Error al obtener workouts: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<WorkoutDTO> getWorkoutById(@PathVariable Long id, @AuthenticationPrincipal String email) {
+        // Validamos que el workout exista y pertenezca al usuario del token (por
+        // seguridad)
+        WorkoutDTO workout = workoutService.getWorkoutByIdAndUser(id, email);
+        return ResponseEntity.ok(workout);
     }
 
     @DeleteMapping("/{id}")
