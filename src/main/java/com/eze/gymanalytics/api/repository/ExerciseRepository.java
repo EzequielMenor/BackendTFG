@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
   List<Exercise> findByNameContainingIgnoreCase(String name);
+  List<Exercise> findByMuscleGroupIgnoreCase(String muscleGroup);
+  List<Exercise> findByEquipmentIgnoreCase(String equipment);
 }

@@ -22,6 +22,18 @@ public class Exercise {
   @Column(name = "image_url", columnDefinition = "TEXT")
   private String imageUrl;
 
+  @Column(length = 50)
+  private String equipment;
+
+  @Column(name = "secondary_muscles", columnDefinition = "TEXT")
+  private String secondaryMuscles;
+
+  @Column(name = "video_url", columnDefinition = "TEXT")
+  private String videoUrl;
+
+  @Column(name = "thumbnail_url", columnDefinition = "TEXT")
+  private String thumbnailUrl;
+
   @Column(name = "created_at", updatable = false)
   private OffsetDateTime createdAt;
 
@@ -49,6 +61,18 @@ public class Exercise {
 
   public String getImageUrl() { return imageUrl; }
   public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+  public String getEquipment() { return equipment; }
+  public void setEquipment(String equipment) { this.equipment = equipment; }
+
+  public String getSecondaryMuscles() { return secondaryMuscles; }
+  public void setSecondaryMuscles(String secondaryMuscles) { this.secondaryMuscles = secondaryMuscles; }
+
+  public String getVideoUrl() { return videoUrl; }
+  public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+
+  public String getThumbnailUrl() { return thumbnailUrl; }
+  public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
 
   public OffsetDateTime getCreatedAt() { return createdAt; }
   public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

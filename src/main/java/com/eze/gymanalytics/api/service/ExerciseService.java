@@ -20,4 +20,12 @@ public class ExerciseService {
   public List<Exercise> getExercisesByName(String name) {
     return exerciseRepository.findByNameContainingIgnoreCase(name);
   }
+
+  public List<Exercise> getExercisesByMuscleGroup(String muscleGroup) {
+    return exerciseRepository.findByMuscleGroupIgnoreCase(muscleGroup);
+  }
+
+  public List<Exercise> getExercisesByEquipment(String equipment) {
+    return exerciseRepository.findByEquipmentIgnoreCase(equipment);
+  }
 }

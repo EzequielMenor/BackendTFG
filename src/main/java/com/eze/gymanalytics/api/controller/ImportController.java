@@ -7,6 +7,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/import")
 public class ImportController {
@@ -25,6 +27,19 @@ public class ImportController {
         try {
             ImportResultDTO result = importService.importHevyCsv(file, email);
             return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/patch-end-times")
+    public ResponseEntity<Map<String, Integer>> patchEndTimes(
+        @RequestParam("file") MultipartFile file,
+        @AuthenticationPrincipal String email
+    ) {
+        try {
+            int updated = importService.patchEndTimes(file, email);
+            return ResponseEntity.ok(Map.of("updated", updated));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }

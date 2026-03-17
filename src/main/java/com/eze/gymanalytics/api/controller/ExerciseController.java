@@ -26,4 +26,14 @@ public class ExerciseController {
   public ResponseEntity<List<Exercise>> searchExercises(@RequestParam String name) {
     return ResponseEntity.ok(exerciseService.getExercisesByName(name));
   }
+
+  @GetMapping("/by-muscle")
+  public ResponseEntity<List<Exercise>> getByMuscle(@RequestParam String muscleGroup) {
+    return ResponseEntity.ok(exerciseService.getExercisesByMuscleGroup(muscleGroup));
+  }
+
+  @GetMapping("/by-equipment")
+  public ResponseEntity<List<Exercise>> getByEquipment(@RequestParam String equipment) {
+    return ResponseEntity.ok(exerciseService.getExercisesByEquipment(equipment));
+  }
 }

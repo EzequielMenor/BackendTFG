@@ -1,11 +1,14 @@
 package com.eze.gymanalytics.api.controller;
 
-import com.eze.gymanalytics.api.dto.analytics.EffectiveVolumeDTO;
-import com.eze.gymanalytics.api.dto.analytics.Progression1RMDTO;
+import com.eze.gymanalytics.api.dto.analytics.*;
 import com.eze.gymanalytics.api.service.AnalyticsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,43 +17,123 @@ import java.util.UUID;
 @RequestMapping("/api/v1/analytics")
 public class AnalyticsController {
 
+    private static final Logger log = LoggerFactory.getLogger(AnalyticsController.class);
     private final AnalyticsService analyticsService;
 
     public AnalyticsController(AnalyticsService analyticsService) {
         this.analyticsService = analyticsService;
     }
 
-    /**
-     * Endpoint to get the 1RM progression for a specific exercise and user.
-     * 
-     * @param userId The ID of the user (in future will be extracted from JWT)
-     * @param exerciseId The ID of the exercise
-     * @return List of date and estimated 1RM pairs
-     */
-    @GetMapping("/1rm-progression")
-    public ResponseEntity<List<Progression1RMDTO>> get1RMProgression(
-            @RequestParam UUID userId,
-            @RequestParam Long exerciseId) {
-        
-        List<Progression1RMDTO> progression = analyticsService.get1RMProgression(userId, exerciseId);
-        return ResponseEntity.ok(progression);
+    @GetMapping("/summary")
+    public ResponseEntity<AnalyticsSummaryResponse> getSummary(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getSummary(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getSummary: ", e);
+            throw e;
+        }
     }
 
-    /**
-     * Endpoint to get the effective volume (sets where RPE >= 7 & not warmup)
-     * by muscle group, for a specific user and since a specific date.
-     * 
-     * @param userId The ID of the user
-     * @param days Number of days back to look for effective volume (default 30)
-     * @return List of muscle groups and effective set counts
-     */
+    @GetMapping("/recent-prs")
+    public ResponseEntity<List<RecentPrResponse>> getRecentPRs(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getRecentPRs(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getRecentPRs: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/top-exercises")
+    public ResponseEntity<List<TopExerciseResponse>> getTopExercises(
+            Principal principal,
+            @RequestParam(defaultValue = "5") int limit) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getTopExercises(userId, limit));
+        } catch (Exception e) {
+            log.error("Error en getTopExercises: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/weekly-volume")
+    public ResponseEntity<List<WeeklyVolumeResponse>> getWeeklyVolume(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getWeeklyVolume(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getWeeklyVolume: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/muscle-distribution")
+    public ResponseEntity<List<MuscleDistributionResponse>> getMuscleDistribution(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getMuscleDistribution(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getMuscleDistribution: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/training-days")
+    public ResponseEntity<TrainingDaysResponse> getTrainingDays(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getTrainingDays(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getTrainingDays: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/duration-stats")
+    public ResponseEntity<DurationStatsResponse> getDurationStats(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getDurationStats(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getDurationStats: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/1rm-progression")
+    public ResponseEntity<List<Progression1RMDTO>> get1RMProgression(
+            Principal principal,
+            @RequestParam Long exerciseId) {
+        UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+        return ResponseEntity.ok(analyticsService.get1RMProgression(userId, exerciseId));
+    }
+
     @GetMapping("/effective-volume")
     public ResponseEntity<List<EffectiveVolumeDTO>> getEffectiveVolume(
-            @RequestParam UUID userId,
-            @RequestParam(defaultValue = "30") int days) {
-        
-        OffsetDateTime startDate = OffsetDateTime.now().minusDays(days);
-        List<EffectiveVolumeDTO> volume = analyticsService.getEffectiveVolume(userId, startDate);
-        return ResponseEntity.ok(volume);
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate) {
+        UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+        return ResponseEntity.ok(analyticsService.getEffectiveVolume(userId, startDate));
     }
 }
