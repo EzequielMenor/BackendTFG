@@ -143,6 +143,13 @@ public class WorkoutService {
         workoutRepository.delete(workout);
     }
 
+    @Transactional
+    public void deleteAllWorkouts(String email) {
+        Profile profile = profileRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Perfil no encontrado"));
+        workoutRepository.deleteAllByUserId(profile.getId());
+    }
+
     private WorkoutDTO convertToDTO(Workout workout) {
         WorkoutDTO dto = new WorkoutDTO();
         dto.setId(workout.getId());
