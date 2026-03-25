@@ -1,5 +1,6 @@
 package com.eze.gymanalytics.api.controller;
 
+import com.eze.gymanalytics.api.dto.ExerciseInfoDTO;
 import com.eze.gymanalytics.api.model.Exercise;
 import com.eze.gymanalytics.api.service.ExerciseService;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,13 @@ public class ExerciseController {
   }
 
   @GetMapping
-  public ResponseEntity<List<Exercise>> getAllExercises() {
-    return ResponseEntity.ok(exerciseService.getAllExercises());
+  public ResponseEntity<List<ExerciseInfoDTO>> getAllExercises(
+      @RequestParam(required = false) String muscleGroup,
+      @RequestParam(required = false) String equipment,
+      @RequestParam(required = false) String name,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size) {
+    return ResponseEntity.ok(exerciseService.getExercisesFiltered(muscleGroup, equipment, name, page, size));
   }
 
   @GetMapping("/search")
