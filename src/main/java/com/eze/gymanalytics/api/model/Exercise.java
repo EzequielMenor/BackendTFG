@@ -34,6 +34,9 @@ public class Exercise {
   @Column(name = "thumbnail_url", columnDefinition = "TEXT")
   private String thumbnailUrl;
 
+  @Column(name = "aliases", columnDefinition = "TEXT[]")
+  private String[] aliases;
+
   @Column(name = "created_at", updatable = false)
   private OffsetDateTime createdAt;
 
@@ -73,6 +76,9 @@ public class Exercise {
 
   public String getThumbnailUrl() { return thumbnailUrl; }
   public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+
+  public String[] getAliases() { return aliases; }
+  public void setAliases(String[] aliases) { this.aliases = aliases; }
 
   public OffsetDateTime getCreatedAt() { return createdAt; }
   public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

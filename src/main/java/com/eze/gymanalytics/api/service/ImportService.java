@@ -250,11 +250,16 @@ public class ImportService {
       return profileRepository.save(p);
     });
 
-    // 2. Cargar todos los ejercicios existentes en caché (1 query)
+    // 2. Cargar todos los ejercicios existentes en caché (1 query): por nombre Y por alias
     Map<String, Long> exerciseCache = new HashMap<>();
-    exerciseRepository.findAll().forEach(ex ->
-        exerciseCache.put(ex.getName().toLowerCase(), ex.getId())
-    );
+    exerciseRepository.findAll().forEach(ex -> {
+        exerciseCache.put(ex.getName().toLowerCase(), ex.getId());
+        if (ex.getAliases() != null) {
+            for (String alias : ex.getAliases()) {
+                if (alias != null) exerciseCache.put(alias.toLowerCase(), ex.getId());
+            }
+        }
+    });
 
     // 3. Parseo completo del CSV en estructuras en memoria (0 queries a DB)
     LinkedHashMap<String, WorkoutHolder> workoutMap = new LinkedHashMap<>();
@@ -297,14 +302,16 @@ public class ImportService {
                 description);
           });
 
-          // Ejercicio: caché → nueva entrada solo si no existe (rara vez)
+          // Ejercicio: caché (nombre + aliases) → nueva entrada solo si no existe
           Long exerciseId = exerciseCache.computeIfAbsent(exerciseName.toLowerCase(), k -> {
             String muscleGroup = detectMuscleGroup(exerciseName);
             Exercise ex = new Exercise();
             ex.setName(exerciseName);
             ex.setMuscleGroup(muscleGroup);
             ex.setDescription("Creado automáticamente");
-            return exerciseRepository.save(ex).getId();
+            ex.setAliases(new String[]{exerciseName});
+            Exercise saved = exerciseRepository.save(ex);
+            return saved.getId();
           });
 
           String weKey = startTimeStr + "|" + exerciseName;

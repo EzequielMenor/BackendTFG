@@ -169,8 +169,11 @@ public class WorkoutService {
         dto.setNotes(we.getNotes());
         if (we.getExercise() != null) {
             ExerciseInfoDTO exInfo = new ExerciseInfoDTO();
+            exInfo.setId(we.getExercise().getId());
             exInfo.setName(we.getExercise().getName());
             exInfo.setMuscleGroup(we.getExercise().getMuscleGroup());
+            exInfo.setThumbnailUrl(we.getExercise().getThumbnailUrl());
+            exInfo.setVideoUrl(we.getExercise().getVideoUrl());
             dto.setExercise(exInfo);
         }
 

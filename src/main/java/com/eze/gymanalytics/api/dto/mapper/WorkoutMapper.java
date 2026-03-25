@@ -52,8 +52,11 @@ public class WorkoutMapper {
       // Mapeamos la info del ejercicio anidado
       if (we.getExercise() != null) {
          ExerciseInfoDTO exInfo = new ExerciseInfoDTO();
+         exInfo.setId(we.getExercise().getId());
          exInfo.setName(we.getExercise().getName());
          exInfo.setMuscleGroup(we.getExercise().getMuscleGroup());
+         exInfo.setThumbnailUrl(we.getExercise().getThumbnailUrl());
+         exInfo.setVideoUrl(we.getExercise().getVideoUrl());
          weDTO.setExercise(exInfo);
       }
 
