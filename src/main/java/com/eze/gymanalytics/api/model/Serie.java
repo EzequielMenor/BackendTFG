@@ -28,6 +28,9 @@ public class Serie {
   @Column(name = "set_order", nullable = false)
   private Integer setOrder;
 
+  @Column(name = "is_pr")
+  private Boolean isPr = false;
+
   public Serie() {
   }
 
@@ -86,5 +89,13 @@ public class Serie {
 
   public void setSetOrder(Integer setOrder) {
     this.setOrder = setOrder;
+  }
+
+  public Boolean getIsPr() {
+    return isPr;
+  }
+
+  public void setIsPr(Boolean isPr) {
+    this.isPr = isPr;
   }
 }

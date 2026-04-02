@@ -9,6 +9,7 @@ public class SerieDTO {
     private BigDecimal rpe;
     private Boolean isWarmup;
     private Integer setOrder;
+    private Boolean isPr;
 
     public SerieDTO() {}
 
@@ -29,4 +30,7 @@ public class SerieDTO {
 
     public Integer getSetOrder() { return setOrder; }
     public void setSetOrder(Integer setOrder) { this.setOrder = setOrder; }
+
+    public Boolean getIsPr() { return isPr; }
+    public void setIsPr(Boolean isPr) { this.isPr = isPr; }
 }

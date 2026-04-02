@@ -51,8 +51,7 @@ public class AnalyticsService {
                 row[0] != null ? ((Number) row[0]).longValue() : 0L,
                 row[1] != null ? (String) row[1] : "Ejercicio",
                 convertToOffsetDateTime(row[2]),
-                row[3] != null ? BigDecimal.valueOf(((Number) row[3]).doubleValue()) : BigDecimal.ZERO,
-                null
+                row[3] != null ? BigDecimal.valueOf(((Number) row[3]).doubleValue()) : BigDecimal.ZERO
         )).collect(Collectors.toList());
     }
 
@@ -194,5 +193,96 @@ public class AnalyticsService {
 
     public List<EffectiveVolumeDTO> getEffectiveVolume(UUID userId, OffsetDateTime startDate) {
         return serieRepository.findEffectiveVolume(userId, startDate);
+    }
+
+    // ── EZE-168: Volume Density ────────────────────────────────────────────────
+
+    public VolumeDensityResponse getVolumeDensity(UUID userId) {
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime minus30 = now.minusDays(30);
+        OffsetDateTime minus60 = minus30.minusDays(30);
+
+        Double current  = serieRepository.findVolumeDensity(userId, minus30, now);
+        Double previous = serieRepository.findVolumeDensity(userId, minus60, minus30);
+
+        double cur  = current  != null ? current  : 0.0;
+        double prev = previous != null ? previous : 0.0;
+        double change = prev > 0 ? Math.round(((cur - prev) / prev) * 1000.0) / 10.0 : 0.0;
+
+        return new VolumeDensityResponse(
+                Math.round(cur  * 100.0) / 100.0,
+                Math.round(prev * 100.0) / 100.0,
+                change);
+    }
+
+    // ── EZE-168: Training Style ────────────────────────────────────────────────
+
+    public TrainingStyleResponse getTrainingStyle(UUID userId, OffsetDateTime from, OffsetDateTime to) {
+        List<Object[]> results = serieRepository.findTrainingStyleCounts(userId, from, to);
+        Object[] row = (results != null && !results.isEmpty()) ? results.get(0) : null;
+        int strength    = row != null && row[0] != null ? ((Number) row[0]).intValue() : 0;
+        int hypertrophy = row != null && row[1] != null ? ((Number) row[1]).intValue() : 0;
+        int endurance   = row != null && row[2] != null ? ((Number) row[2]).intValue() : 0;
+        return new TrainingStyleResponse(strength, hypertrophy, endurance);
+    }
+
+    // ── EZE-168: Weekly Rhythm ─────────────────────────────────────────────────
+
+    public WeeklyRhythmResponse getWeeklyRhythm(UUID userId) {
+        OffsetDateTime sixMonthsAgo = OffsetDateTime.now().minusMonths(6);
+        List<Object[]> results = workoutRepository.findWeeklyRhythm(userId, sixMonthsAgo);
+
+        // Build a 7-element array (index 0=Mon … 6=Sun), default 0
+        int[] counts = new int[7];
+        for (Object[] row : results) {
+            int dayIndex   = ((Number) row[0]).intValue();
+            int sessionCnt = ((Number) row[1]).intValue();
+            if (dayIndex >= 0 && dayIndex < 7) {
+                counts[dayIndex] = sessionCnt;
+            }
+        }
+
+        List<Integer> list = new java.util.ArrayList<>();
+        for (int c : counts) list.add(c);
+        return new WeeklyRhythmResponse(list);
+    }
+
+    // ── EZE-169: Exercise Trend Engine ────────────────────────────────────────
+
+    public ExerciseTrendResponse getExerciseTrend(UUID userId, Long exerciseId) {
+        // Last 3 sessions
+        List<Object[]> recent = serieRepository.findRecentExerciseSessions(userId, exerciseId, 3);
+        if (recent.size() < 3) {
+            String seed = exerciseId + "|NEW|" + java.time.YearMonth.now();
+            return new ExerciseTrendResponse("NEW", seed);
+        }
+
+        double recentAvg = recent.stream()
+                .mapToDouble(r -> r[1] != null ? ((Number) r[1]).doubleValue() : 0.0)
+                .average().orElse(0.0);
+
+        // Sessions from ~1 month ago (same count)
+        OffsetDateTime monthEnd   = OffsetDateTime.now().minusDays(25);
+        OffsetDateTime monthStart = monthEnd.minusDays(40);
+        List<Object[]> older = serieRepository.findExerciseSessionsInRange(userId, exerciseId, monthStart, monthEnd, 3);
+
+        if (older.isEmpty() || recentAvg == 0.0) {
+            String seed = exerciseId + "|NEW|" + java.time.YearMonth.now();
+            return new ExerciseTrendResponse("NEW", seed);
+        }
+
+        double olderAvg = older.stream()
+                .mapToDouble(r -> r[1] != null ? ((Number) r[1]).doubleValue() : 0.0)
+                .average().orElse(0.0);
+
+        double changePercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100.0 : 0.0;
+
+        String status;
+        if      (changePercent >  3.0)  status = "OVERLOAD";
+        else if (changePercent < -3.0)  status = "REGRESSION";
+        else                            status = "STAGNANT";
+
+        String seed = exerciseId + "|" + status + "|" + java.time.YearMonth.now();
+        return new ExerciseTrendResponse(status, seed);
     }
 }

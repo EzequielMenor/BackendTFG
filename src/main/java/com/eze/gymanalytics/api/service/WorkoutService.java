@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -87,6 +88,13 @@ public class WorkoutService {
                 if (exerciseDTO.getSeries() != null && !exerciseDTO.getSeries().isEmpty()) {
                     List<Serie> seriesToSave = new ArrayList<>();
 
+                    // Fetch historical max weight once per exercise to minimise queries
+                    BigDecimal histMaxWeight = serieRepository
+                            .findHistoricalMaxWeight(user.getId(), exercise.getId(), savedWorkout.getId())
+                            .orElse(null);
+                    // Track intra-workout max to handle multiple PRs in same session
+                    BigDecimal maxWeightSoFar = histMaxWeight;
+
                     for (SerieDTO serieDTO : exerciseDTO.getSeries()) {
                         Serie serie = new Serie();
                         serie.setWorkoutExercise(savedWe);
@@ -100,6 +108,22 @@ public class WorkoutService {
                             BigDecimal serieVolume = serie.getWeight().multiply(new BigDecimal(serie.getReps()));
                             savedWorkout.setTotalVolume(savedWorkout.getTotalVolume().add(serieVolume));
                         }
+
+                        // PR detection (only for working sets with valid data)
+                        boolean isPr = false;
+                        if (!Boolean.TRUE.equals(serie.getIsWarmup())
+                                && serie.getWeight() != null && serie.getReps() != null
+                                && serie.getWeight().compareTo(BigDecimal.ZERO) > 0) {
+                            if (maxWeightSoFar == null || serie.getWeight().compareTo(maxWeightSoFar) > 0) {
+                                isPr = true;
+                                maxWeightSoFar = serie.getWeight();
+                            } else if (serie.getWeight().compareTo(maxWeightSoFar) == 0) {
+                                Optional<Integer> histMaxReps = serieRepository.findHistoricalMaxRepsAtWeight(
+                                        user.getId(), exercise.getId(), savedWorkout.getId(), serie.getWeight());
+                                isPr = histMaxReps.isEmpty() || serie.getReps() > histMaxReps.get();
+                            }
+                        }
+                        serie.setIsPr(isPr);
 
                         seriesToSave.add(serie);
                     }
@@ -202,6 +226,7 @@ public class WorkoutService {
         dto.setRpe(serie.getRpe());
         dto.setIsWarmup(serie.getIsWarmup());
         dto.setSetOrder(serie.getSetOrder());
+        dto.setIsPr(serie.getIsPr());
         return dto;
     }
 

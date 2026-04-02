@@ -136,4 +136,57 @@ public class AnalyticsController {
         UUID userId = analyticsService.getUserIdByEmail(principal.getName());
         return ResponseEntity.ok(analyticsService.getEffectiveVolume(userId, startDate));
     }
+
+    // ── EZE-168 ────────────────────────────────────────────────────────────────
+
+    @GetMapping("/volume-density")
+    public ResponseEntity<VolumeDensityResponse> getVolumeDensity(Principal principal) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getVolumeDensity(userId));
+        } catch (Exception e) {
+            log.error("Error en getVolumeDensity: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/training-style")
+    public ResponseEntity<TrainingStyleResponse> getTrainingStyle(
+            Principal principal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getTrainingStyle(userId, from, to));
+        } catch (Exception e) {
+            log.error("Error en getTrainingStyle: ", e);
+            throw e;
+        }
+    }
+
+    @GetMapping("/weekly-rhythm")
+    public ResponseEntity<WeeklyRhythmResponse> getWeeklyRhythm(Principal principal) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getWeeklyRhythm(userId));
+        } catch (Exception e) {
+            log.error("Error en getWeeklyRhythm: ", e);
+            throw e;
+        }
+    }
+
+    // ── EZE-169 ────────────────────────────────────────────────────────────────
+
+    @GetMapping("/exercise/{id}/trend")
+    public ResponseEntity<ExerciseTrendResponse> getExerciseTrend(
+            Principal principal,
+            @PathVariable Long id) {
+        try {
+            UUID userId = analyticsService.getUserIdByEmail(principal.getName());
+            return ResponseEntity.ok(analyticsService.getExerciseTrend(userId, id));
+        } catch (Exception e) {
+            log.error("Error en getExerciseTrend: ", e);
+            throw e;
+        }
+    }
 }

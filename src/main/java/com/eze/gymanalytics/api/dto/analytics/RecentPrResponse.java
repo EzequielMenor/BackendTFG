@@ -7,54 +7,24 @@ public class RecentPrResponse {
     private Long exerciseId;
     private String exerciseName;
     private OffsetDateTime date;
-    private BigDecimal estimated1Rm;
-    private BigDecimal previousEstimated1RM;
+    private BigDecimal estimated1Rm;  // kept for backwards compatibility — now holds maxWeight
 
-    public RecentPrResponse(Long exerciseId, String exerciseName, OffsetDateTime date, BigDecimal estimated1Rm, BigDecimal previousEstimated1RM) {
+    public RecentPrResponse(Long exerciseId, String exerciseName, OffsetDateTime date, BigDecimal maxWeight) {
         this.exerciseId = exerciseId;
         this.exerciseName = exerciseName;
         this.date = date;
-        this.estimated1Rm = estimated1Rm;
-        this.previousEstimated1RM = previousEstimated1RM;
+        this.estimated1Rm = maxWeight;
     }
 
-    public Long getExerciseId() {
-        return exerciseId;
-    }
+    public Long getExerciseId() { return exerciseId; }
+    public void setExerciseId(Long exerciseId) { this.exerciseId = exerciseId; }
 
-    public void setExerciseId(Long exerciseId) {
-        this.exerciseId = exerciseId;
-    }
+    public String getExerciseName() { return exerciseName; }
+    public void setExerciseName(String exerciseName) { this.exerciseName = exerciseName; }
 
-    public String getExerciseName() {
-        return exerciseName;
-    }
+    public OffsetDateTime getDate() { return date; }
+    public void setDate(OffsetDateTime date) { this.date = date; }
 
-    public void setExerciseName(String exerciseName) {
-        this.exerciseName = exerciseName;
-    }
-
-    public OffsetDateTime getDate() {
-        return date;
-    }
-
-    public void setDate(OffsetDateTime date) {
-        this.date = date;
-    }
-
-    public BigDecimal getEstimated1Rm() {
-        return estimated1Rm;
-    }
-
-    public void setEstimated1Rm(BigDecimal estimated1Rm) {
-        this.estimated1Rm = estimated1Rm;
-    }
-
-    public BigDecimal getPreviousEstimated1RM() {
-        return previousEstimated1RM;
-    }
-
-    public void setPreviousEstimated1RM(BigDecimal previousEstimated1RM) {
-        this.previousEstimated1RM = previousEstimated1RM;
-    }
+    public BigDecimal getEstimated1Rm() { return estimated1Rm; }
+    public void setEstimated1Rm(BigDecimal estimated1Rm) { this.estimated1Rm = estimated1Rm; }
 }

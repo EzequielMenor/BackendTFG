@@ -42,13 +42,34 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
     List<OffsetDateTime> findTrainingDaysByUserIdAndRange(@Param("userId") UUID userId, @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
 
     @Query(value = """
-        SELECT 
+        SELECT
             CAST(AVG(EXTRACT(EPOCH FROM (w.end_time - w.start_time)) / 60) AS INTEGER) as avg_min,
             CAST(MAX(EXTRACT(EPOCH FROM (w.end_time - w.start_time)) / 60) AS INTEGER) as max_min
         FROM workouts w
-        WHERE w.user_id = :userId 
-          AND w.start_time BETWEEN :from AND :to 
+        WHERE w.user_id = :userId
+          AND w.start_time BETWEEN :from AND :to
           AND w.end_time IS NOT NULL
     """, nativeQuery = true)
     List<Object[]> findDurationStatsNative(@Param("userId") UUID userId, @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
+
+    // ── EZE-186: Admin — count distinct active users in the last N days ──────────
+    @Query(value = """
+        SELECT COUNT(DISTINCT w.user_id)
+        FROM workouts w
+        WHERE w.start_time >= :since
+    """, nativeQuery = true)
+    long countDistinctActiveUsersSince(@Param("since") OffsetDateTime since);
+
+    // ── EZE-168: Weekly Rhythm — session count per day of week (0=Mon … 6=Sun) ─
+    @Query(value = """
+        SELECT
+            (EXTRACT(DOW FROM w.start_time)::int + 6) % 7 AS day_index,
+            COUNT(*) AS session_count
+        FROM workouts w
+        WHERE w.user_id = :userId
+          AND w.start_time >= :from
+        GROUP BY day_index
+        ORDER BY day_index
+    """, nativeQuery = true)
+    List<Object[]> findWeeklyRhythm(@Param("userId") UUID userId, @Param("from") OffsetDateTime from);
 }
