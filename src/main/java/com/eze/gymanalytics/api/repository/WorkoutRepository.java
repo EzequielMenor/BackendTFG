@@ -4,6 +4,8 @@ import com.eze.gymanalytics.api.model.Workout;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -24,4 +26,8 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
             OffsetDateTime start,
             OffsetDateTime end,
             Pageable pageable);
+
+    // Usuarios activos (con al menos un workout) en los últimos N días
+    @Query(value = "SELECT COUNT(DISTINCT user_id) FROM workouts WHERE start_time >= :since", nativeQuery = true)
+    long countDistinctActiveUsersSince(@Param("since") OffsetDateTime since);
 }
