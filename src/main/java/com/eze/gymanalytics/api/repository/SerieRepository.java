@@ -49,6 +49,10 @@ public interface SerieRepository extends JpaRepository<Serie, Long> {
         GROUP BY we.exercise.muscleGroup
     """)
     List<EffectiveVolumeDTO> findEffectiveVolume(
-            @Param("userId") UUID userId, 
-            @Param("startDate") OffsetDateTime startDate);
+            @Param(\"userId\") UUID userId, 
+            @Param(\"startDate\") OffsetDateTime startDate);
+
+    // Sumar volumen total (weight * reps) en un rango de fechas
+    @Query(value = \"SELECT COALESCE(SUM(s.weight * s.reps), 0) FROM series s JOIN workout_exercises we ON s.workout_exercise_id = we.id JOIN workouts w ON we.workout_id = w.id WHERE w.user_id = :userId AND w.start_time >= :from AND w.start_time <= :to AND s.is_warmup = false\", nativeQuery = true)
+    java.math.BigDecimal sumVolumeByUserAndDateRange(@Param(\"userId\") UUID userId, @Param(\"from\") OffsetDateTime from, @Param(\"to\") OffsetDateTime to);
 }

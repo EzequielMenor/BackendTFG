@@ -4,8 +4,11 @@ import com.eze.gymanalytics.api.dto.analytics.AnalyticsSummaryDTO;
 import com.eze.gymanalytics.api.dto.analytics.EffectiveVolumeDTO;
 import com.eze.gymanalytics.api.dto.analytics.Progression1RMDTO;
 import com.eze.gymanalytics.api.repository.SerieRepository;
+import com.eze.gymanalytics.api.repository.WorkoutRepository;
+import com.eze.gymanalytics.api.repository.WorkoutExerciseRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,9 +17,15 @@ import java.util.UUID;
 public class AnalyticsService {
 
     private final SerieRepository serieRepository;
+    private final WorkoutRepository workoutRepository;
+    private final WorkoutExerciseRepository workoutExerciseRepository;
 
-    public AnalyticsService(SerieRepository serieRepository) {
+    public AnalyticsService(SerieRepository serieRepository, 
+                            WorkoutRepository workoutRepository,
+                            WorkoutExerciseRepository workoutExerciseRepository) {
         this.serieRepository = serieRepository;
+        this.workoutRepository = workoutRepository;
+        this.workoutExerciseRepository = workoutExerciseRepository;
     }
 
     /**
@@ -43,7 +52,7 @@ public class AnalyticsService {
         return serieRepository.findEffectiveVolume(userId, startDate);
     }
 
-    /**
+/**
      * Returns an aggregated summary of the user's training within a date window.
      * Includes total workouts, total volume, top muscle group, and average duration.
      *
@@ -53,6 +62,24 @@ public class AnalyticsService {
      * @return AnalyticsSummaryDTO with aggregated training data
      */
     public AnalyticsSummaryDTO getSummary(UUID userId, OffsetDateTime from, OffsetDateTime to) {
-        throw new UnsupportedOperationException("getSummary not yet implemented");
+        // 1. Count total workouts in period
+        long totalWorkouts = workoutRepository.countByUserIdAndDateRange(userId, from, to);
+        
+        // 2. Calculate total volume (sum of weight * reps for effective sets)
+        BigDecimal totalVolume = serieRepository.sumVolumeByUserAndDateRange(userId, from, to);
+        if (totalVolume == null) {
+            totalVolume = BigDecimal.ZERO;
+        }
+        
+        // 3. Find top muscle group
+        String topMuscleGroup = workoutExerciseRepository.findTopMuscleGroupByUserAndDateRange(userId, from, to);
+        if (topMuscleGroup == null) {
+            topMuscleGroup = null; // N/A
+        }
+        
+        // 4. Calculate average duration
+        double avgDurationMinutes = workoutRepository.avgDurationByUserAndDateRange(userId, from, to);
+        
+        return new AnalyticsSummaryDTO(totalWorkouts, totalVolume, topMuscleGroup, avgDurationMinutes);
     }
 }
