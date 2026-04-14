@@ -1,6 +1,7 @@
 package com.eze.gymanalytics.api.service;
 
 import com.eze.gymanalytics.api.dto.*;
+import com.eze.gymanalytics.api.model.Exercise;
 import com.eze.gymanalytics.api.model.Profile;
 import com.eze.gymanalytics.api.model.Workout;
 import com.eze.gymanalytics.api.model.WorkoutExercise;
@@ -12,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -112,7 +115,148 @@ public class AdminService {
     }
 
     // -------------------------------------------------------------------------
-    // Mappers
+    // Exercises CRUD
+    // -------------------------------------------------------------------------
+
+    /**
+     * Devuelve todos los ejercicios del catálogo ordenados por nombre.
+     * El ordenamiento se delega al repositorio (ORDER BY name ASC en BD)
+     * en lugar de hacerlo en memoria con un Comparator.
+     */
+    public List<AdminExerciseDTO> getAllExercises() {
+        return exerciseRepository.findAllByOrderByNameAsc()
+                .stream()
+                .map(this::toAdminExerciseDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Devuelve el detalle de un ejercicio por id.
+     * Lanza 404 si no existe.
+     */
+    public AdminExerciseDTO getExerciseById(Long id) {
+        Exercise exercise = exerciseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ejercicio no encontrado: " + id));
+        return toAdminExerciseDTO(exercise);
+    }
+
+    /**
+     * Crea un nuevo ejercicio en el catálogo.
+     * Valida que el nombre sea único (case-insensitive).
+     * Lanza 409 si ya existe un ejercicio con ese nombre.
+     */
+    public AdminExerciseDTO createExercise(Map<String, Object> body) {
+        String name = (String) body.get("name");
+        if (name == null || name.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
+        }
+        exerciseRepository.findByNameIgnoreCase(name.trim()).ifPresent(e -> {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Ya existe un ejercicio con el nombre: " + name);
+        });
+
+        Exercise exercise = new Exercise();
+        applyExerciseFields(exercise, body);
+
+        Exercise saved = exerciseRepository.save(exercise);
+        return toAdminExerciseDTO(saved);
+    }
+
+    /**
+     * Actualiza un ejercicio existente.
+     * Valida unicidad del nombre excluyendo el propio ejercicio.
+     * Lanza 404 si no existe, 409 si el nombre ya lo usa otro ejercicio.
+     */
+    public AdminExerciseDTO updateExercise(Long id, Map<String, Object> body) {
+        Exercise exercise = exerciseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ejercicio no encontrado: " + id));
+
+        String name = (String) body.get("name");
+        if (name != null && !name.isBlank()) {
+            exerciseRepository.findByNameIgnoreCaseAndIdNot(name.trim(), id).ifPresent(e -> {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT, "Ya existe un ejercicio con el nombre: " + name);
+            });
+        }
+
+        applyExerciseFields(exercise, body);
+        Exercise saved = exerciseRepository.save(exercise);
+        return toAdminExerciseDTO(saved);
+    }
+
+    /**
+     * Elimina un ejercicio del catálogo.
+     * Lanza 404 si no existe.
+     */
+    public void deleteExercise(Long id) {
+        if (!exerciseRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Ejercicio no encontrado: " + id);
+        }
+        exerciseRepository.deleteById(id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers — Exercises
+    // -------------------------------------------------------------------------
+
+    /**
+     * Aplica los campos del body al objeto Exercise.
+     * Solo actualiza los campos presentes en el body (no null).
+     */
+    @SuppressWarnings("unchecked")
+    private void applyExerciseFields(Exercise exercise, Map<String, Object> body) {
+        if (body.containsKey("name")) {
+            String n = (String) body.get("name");
+            if (n != null) exercise.setName(n.trim());
+        }
+        if (body.containsKey("muscleGroup"))      exercise.setMuscleGroup((String) body.get("muscleGroup"));
+        if (body.containsKey("description"))      exercise.setDescription((String) body.get("description"));
+        if (body.containsKey("imageUrl"))         exercise.setImageUrl((String) body.get("imageUrl"));
+        if (body.containsKey("videoUrl"))         exercise.setVideoUrl((String) body.get("videoUrl"));
+        if (body.containsKey("thumbnailUrl"))     exercise.setThumbnailUrl((String) body.get("thumbnailUrl"));
+        if (body.containsKey("equipment"))        exercise.setEquipment((String) body.get("equipment"));
+        if (body.containsKey("secondaryMuscles")) exercise.setSecondaryMuscles((String) body.get("secondaryMuscles"));
+
+        // aliases puede venir como List<String> o como String separado por comas
+        if (body.containsKey("aliases")) {
+            Object aliasesRaw = body.get("aliases");
+            if (aliasesRaw instanceof List) {
+                exercise.setAliases((List<String>) aliasesRaw);
+            } else if (aliasesRaw instanceof String) {
+                String s = (String) aliasesRaw;
+                if (s.isBlank()) {
+                    exercise.setAliases(List.of());
+                } else {
+                    exercise.setAliases(Arrays.stream(s.split(","))
+                            .map(String::trim)
+                            .filter(x -> !x.isEmpty())
+                            .collect(Collectors.toList()));
+                }
+            }
+        }
+    }
+
+    private AdminExerciseDTO toAdminExerciseDTO(Exercise e) {
+        return new AdminExerciseDTO(
+                e.getId(),
+                e.getName(),
+                e.getMuscleGroup(),
+                e.getDescription(),
+                e.getImageUrl(),
+                e.getVideoUrl(),
+                e.getThumbnailUrl(),
+                e.getEquipment(),
+                e.getSecondaryMuscles(),
+                e.getAliases() != null ? e.getAliases() : List.of(),
+                e.getCreatedAt() != null ? e.getCreatedAt().toString() : null
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Mappers — Workouts
     // -------------------------------------------------------------------------
 
     private AdminWorkoutDTO toAdminWorkoutDTO(Workout w) {

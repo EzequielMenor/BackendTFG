@@ -1,5 +1,6 @@
 package com.eze.gymanalytics.api.controller;
 
+import com.eze.gymanalytics.api.dto.AdminExerciseDTO;
 import com.eze.gymanalytics.api.dto.AdminStatsDTO;
 import com.eze.gymanalytics.api.dto.UserProfileDTO;
 import com.eze.gymanalytics.api.model.Profile;
@@ -12,21 +13,25 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Tests de slice para AdminController.
@@ -153,11 +158,6 @@ class AdminControllerTest {
     /**
      * Verifica que si el rol del usuario es revocado en la DB entre dos solicitudes,
      * el controlador refleja el nuevo estado en la siguiente petición (siempre consulta DB).
-     *
-     * Flujo:
-     *  1. Primera petición → usuario tiene rol "admin" → 200
-     *  2. El rol es revocado en la DB → ahora tiene rol "user"
-     *  3. Segunda petición → controlador re-consulta DB → 403
      */
     @Test
     @WithMockUser(username = "admin@gym.com")
@@ -180,7 +180,137 @@ class AdminControllerTest {
     }
 
     // ─────────────────────────────────────────────────────
-    // Helper
+    // GET /api/admin/exercises
+    // ─────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void getAllExercises_withAdminRole_returns200() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        AdminExerciseDTO dto = buildExerciseDTO(1L, "Press Banca", "Pecho");
+        when(adminService.getAllExercises()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/admin/exercises"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Press Banca"))
+                .andExpect(jsonPath("$[0].muscleGroup").value("Pecho"));
+    }
+
+    @Test
+    @WithMockUser(username = "user@gym.com")
+    void getAllExercises_withNonAdminRole_returns403() throws Exception {
+        Profile regularProfile = buildProfile("user@gym.com", "user");
+        when(profileRepository.findByEmail("user@gym.com")).thenReturn(Optional.of(regularProfile));
+
+        mockMvc.perform(get("/api/admin/exercises"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getAllExercises_withoutAuthentication_returns401() throws Exception {
+        mockMvc.perform(get("/api/admin/exercises"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ─────────────────────────────────────────────────────
+    // GET /api/admin/exercises/{id}
+    // ─────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void getExerciseById_existingId_returns200() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        AdminExerciseDTO dto = buildExerciseDTO(5L, "Sentadilla", "Cuadriceps");
+        when(adminService.getExerciseById(5L)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/admin/exercises/5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.name").value("Sentadilla"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void getExerciseById_nonExistingId_returns404() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+        when(adminService.getExerciseById(anyLong()))
+                .thenThrow(new ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "No encontrado"));
+
+        mockMvc.perform(get("/api/admin/exercises/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ─────────────────────────────────────────────────────
+    // POST /api/admin/exercises
+    // ─────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void createExercise_validBody_returns201() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        AdminExerciseDTO created = buildExerciseDTO(10L, "Curl de Biceps", "Biceps");
+        when(adminService.createExercise(any())).thenReturn(created);
+
+        mockMvc.perform(post("/api/admin/exercises")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Curl de Biceps\",\"muscleGroup\":\"Biceps\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.name").value("Curl de Biceps"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void createExercise_duplicateName_returns409() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+        when(adminService.createExercise(any()))
+                .thenThrow(new ResponseStatusException(
+                        org.springframework.http.HttpStatus.CONFLICT, "Nombre duplicado"));
+
+        mockMvc.perform(post("/api/admin/exercises")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Press Banca\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    // ─────────────────────────────────────────────────────
+    // DELETE /api/admin/exercises/{id}
+    // ─────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void deleteExercise_existingId_returns204() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        mockMvc.perform(delete("/api/admin/exercises/1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void deleteExercise_nonExistingId_returns404() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+        doThrow(new ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "No encontrado"))
+                .when(adminService).deleteExercise(anyLong());
+
+        mockMvc.perform(delete("/api/admin/exercises/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ─────────────────────────────────────────────────────
+    // Helpers
     // ─────────────────────────────────────────────────────
 
     private Profile buildProfile(String email, String role) {
@@ -190,5 +320,10 @@ class AdminControllerTest {
         profile.setUsername(email.split("@")[0]);
         profile.setRole(role);
         return profile;
+    }
+
+    private AdminExerciseDTO buildExerciseDTO(Long id, String name, String muscleGroup) {
+        return new AdminExerciseDTO(
+                id, name, muscleGroup, null, null, null, null, null, null, List.of(), null);
     }
 }

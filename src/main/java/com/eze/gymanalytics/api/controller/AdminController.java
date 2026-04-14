@@ -1,11 +1,13 @@
 package com.eze.gymanalytics.api.controller;
 
+import com.eze.gymanalytics.api.dto.AdminExerciseDTO;
 import com.eze.gymanalytics.api.dto.AdminStatsDTO;
 import com.eze.gymanalytics.api.dto.AdminWorkoutDTO;
 import com.eze.gymanalytics.api.dto.AdminWorkoutDetailDTO;
 import com.eze.gymanalytics.api.dto.UserProfileDTO;
 import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.service.AdminService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -118,6 +120,85 @@ public class AdminController {
     }
 
     // -------------------------------------------------------------------------
+    // Exercises CRUD
+    // -------------------------------------------------------------------------
+
+    /**
+     * Devuelve todos los ejercicios del catálogo.
+     * GET /api/admin/exercises
+     */
+    @GetMapping("/exercises")
+    public ResponseEntity<?> getAllExercises() {
+        String email = getAuthenticatedEmail();
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
+        }
+        List<AdminExerciseDTO> exercises = adminService.getAllExercises();
+        return ResponseEntity.ok(exercises);
+    }
+
+    /**
+     * Devuelve el detalle de un ejercicio por id.
+     * GET /api/admin/exercises/{id}
+     */
+    @GetMapping("/exercises/{id}")
+    public ResponseEntity<?> getExerciseById(@PathVariable Long id) {
+        String email = getAuthenticatedEmail();
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
+        }
+        AdminExerciseDTO exercise = adminService.getExerciseById(id);
+        return ResponseEntity.ok(exercise);
+    }
+
+    /**
+     * Crea un nuevo ejercicio en el catálogo.
+     * POST /api/admin/exercises
+     * Body: { "name": "...", "muscleGroup": "...", ... }
+     * Devuelve 201 Created con el ejercicio creado.
+     */
+    @PostMapping("/exercises")
+    public ResponseEntity<?> createExercise(@RequestBody Map<String, Object> body) {
+        String email = getAuthenticatedEmail();
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
+        }
+        AdminExerciseDTO created = adminService.createExercise(body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * Actualiza un ejercicio existente.
+     * PUT /api/admin/exercises/{id}
+     * Body: campos a actualizar (todos opcionales excepto name si se envía)
+     */
+    @PutMapping("/exercises/{id}")
+    public ResponseEntity<?> updateExercise(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        String email = getAuthenticatedEmail();
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
+        }
+        AdminExerciseDTO updated = adminService.updateExercise(id, body);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * Elimina un ejercicio del catálogo.
+     * DELETE /api/admin/exercises/{id}
+     */
+    @DeleteMapping("/exercises/{id}")
+    public ResponseEntity<?> deleteExercise(@PathVariable Long id) {
+        String email = getAuthenticatedEmail();
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
+        }
+        adminService.deleteExercise(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -145,3 +226,4 @@ public class AdminController {
                 .orElse(false);
     }
 }
+

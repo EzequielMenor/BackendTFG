@@ -1,8 +1,10 @@
 package com.eze.gymanalytics.api.controller;
 
+import com.eze.gymanalytics.api.dto.analytics.AnalyticsSummaryDTO;
 import com.eze.gymanalytics.api.dto.analytics.EffectiveVolumeDTO;
 import com.eze.gymanalytics.api.dto.analytics.Progression1RMDTO;
 import com.eze.gymanalytics.api.service.AnalyticsService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,5 +54,24 @@ public class AnalyticsController {
         OffsetDateTime startDate = OffsetDateTime.now().minusDays(days);
         List<EffectiveVolumeDTO> volume = analyticsService.getEffectiveVolume(userId, startDate);
         return ResponseEntity.ok(volume);
+    }
+
+    /**
+     * Endpoint to get an aggregated training summary for a user within a date window.
+     *
+     * @param userId The ID of the user
+     * @param from   Start of the date window (ISO 8601, e.g. 2025-01-01T00:00:00Z)
+     * @param to     End of the date window (ISO 8601, e.g. 2025-12-31T23:59:59Z)
+     * @return AnalyticsSummaryDTO with totalWorkouts, totalVolume, topMuscleGroup, avgDurationMinutes
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<AnalyticsSummaryDTO> getSummary(
+            @RequestParam UUID userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+
+        System.out.println("DEBUG: Received GET /summary with params userId=" + userId + ", from=" + from + ", to=" + to);
+        AnalyticsSummaryDTO summary = analyticsService.getSummary(userId, from, to);
+        return ResponseEntity.ok(summary);
     }
 }

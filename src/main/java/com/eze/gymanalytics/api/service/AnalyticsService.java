@@ -1,5 +1,6 @@
 package com.eze.gymanalytics.api.service;
 
+import com.eze.gymanalytics.api.dto.analytics.AnalyticsSummaryDTO;
 import com.eze.gymanalytics.api.dto.analytics.EffectiveVolumeDTO;
 import com.eze.gymanalytics.api.dto.analytics.Progression1RMDTO;
 import com.eze.gymanalytics.api.repository.SerieRepository;
@@ -40,5 +41,18 @@ public class AnalyticsService {
      */
     public List<EffectiveVolumeDTO> getEffectiveVolume(UUID userId, OffsetDateTime startDate) {
         return serieRepository.findEffectiveVolume(userId, startDate);
+    }
+
+    /**
+     * Returns an aggregated summary of the user's training within a date window.
+     * Includes total workouts, total volume, top muscle group, and average duration.
+     *
+     * @param userId The ID of the user
+     * @param from   Start of the date window (inclusive)
+     * @param to     End of the date window (inclusive)
+     * @return AnalyticsSummaryDTO with aggregated training data
+     */
+    public AnalyticsSummaryDTO getSummary(UUID userId, OffsetDateTime from, OffsetDateTime to) {
+        throw new UnsupportedOperationException("getSummary not yet implemented");
     }
 }
