@@ -1,5 +1,7 @@
 package com.eze.gymanalytics.api.dto.analytics;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
 
 public class AnalyticsSummaryDTO {
@@ -20,6 +22,11 @@ public class AnalyticsSummaryDTO {
     }
 
     public long getTotalWorkouts() {
+        return totalWorkouts;
+    }
+
+    @JsonProperty("sessionCount")
+    public long getSessionCount() {
         return totalWorkouts;
     }
 

@@ -143,6 +143,14 @@ public class WorkoutService {
         workoutRepository.delete(workout);
     }
 
+    @Transactional
+    public void deleteAllWorkouts(String userEmail) {
+        Profile user = profileRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        List<Workout> workouts = workoutRepository.findByUserId(user.getId());
+        workoutRepository.deleteAll(workouts);
+    }
+
     private WorkoutDTO convertToDTO(Workout workout) {
         WorkoutDTO dto = new WorkoutDTO();
         dto.setId(workout.getId());

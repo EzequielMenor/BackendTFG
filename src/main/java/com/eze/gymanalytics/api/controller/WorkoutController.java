@@ -67,4 +67,14 @@ public class WorkoutController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+
+    @DeleteMapping
+    public ResponseEntity<String> deleteAllWorkouts(@AuthenticationPrincipal String email) {
+        try {
+            workoutService.deleteAllWorkouts(email);
+            return ResponseEntity.ok("Entrenamientos borrados correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }

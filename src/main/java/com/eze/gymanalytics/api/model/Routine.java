@@ -7,8 +7,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "routines")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,5 +40,62 @@ public class Routine {
     if (createdAt == null) {
       createdAt = OffsetDateTime.now();
     }
+  }
+
+  // Manual getters/setters to avoid relying on Lombok processing
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  public Profile getUser() {
+    return user;
+  }
+
+  public void setUser(Profile user) {
+    this.user = user;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public Boolean getIsPublic() {
+    return isPublic;
+  }
+
+  public void setIsPublic(Boolean isPublic) {
+    this.isPublic = isPublic;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public void setCreatedAt(OffsetDateTime createdAt) {
+    this.createdAt = createdAt;
+  }
+
+  public List<RoutineExercise> getRoutineExercises() {
+    return routineExercises;
+  }
+
+  public void setRoutineExercises(List<RoutineExercise> routineExercises) {
+    this.routineExercises = routineExercises;
   }
 }

@@ -1,11 +1,22 @@
 package com.eze.gymanalytics.api.controller;
 
 import com.eze.gymanalytics.api.dto.analytics.AnalyticsSummaryDTO;
+import com.eze.gymanalytics.api.dto.analytics.ConsistencyDTO;
+import com.eze.gymanalytics.api.dto.analytics.DurationStatsDTO;
 import com.eze.gymanalytics.api.dto.analytics.EffectiveVolumeDTO;
+import com.eze.gymanalytics.api.dto.analytics.MuscleDistributionDTO;
+import com.eze.gymanalytics.api.dto.analytics.RecentPrDTO;
 import com.eze.gymanalytics.api.dto.analytics.Progression1RMDTO;
+import com.eze.gymanalytics.api.dto.analytics.TopExerciseDTO;
+import com.eze.gymanalytics.api.dto.analytics.TrainingStyleDTO;
+import com.eze.gymanalytics.api.dto.analytics.VolumeDensityDTO;
+import com.eze.gymanalytics.api.dto.analytics.WeeklyRhythmDTO;
+import com.eze.gymanalytics.api.dto.analytics.WeeklyVolumeDTO;
+import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.service.AnalyticsService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -17,9 +28,17 @@ import java.util.UUID;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final ProfileRepository profileRepository;
 
-    public AnalyticsController(AnalyticsService analyticsService) {
+    public AnalyticsController(AnalyticsService analyticsService, ProfileRepository profileRepository) {
         this.analyticsService = analyticsService;
+        this.profileRepository = profileRepository;
+    }
+
+    private java.util.UUID requireUserId(@AuthenticationPrincipal String email) {
+        return profileRepository.findByEmail(email)
+                .map(com.eze.gymanalytics.api.model.Profile::getId)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil no encontrado para email: " + email));
     }
 
     /**
@@ -31,9 +50,10 @@ public class AnalyticsController {
      */
     @GetMapping("/1rm-progression")
     public ResponseEntity<List<Progression1RMDTO>> get1RMProgression(
-            @RequestParam UUID userId,
+            @AuthenticationPrincipal String email,
             @RequestParam Long exerciseId) {
         
+        UUID userId = requireUserId(email);
         List<Progression1RMDTO> progression = analyticsService.get1RMProgression(userId, exerciseId);
         return ResponseEntity.ok(progression);
     }
@@ -48,10 +68,11 @@ public class AnalyticsController {
      */
     @GetMapping("/effective-volume")
     public ResponseEntity<List<EffectiveVolumeDTO>> getEffectiveVolume(
-            @RequestParam UUID userId,
+            @AuthenticationPrincipal String email,
             @RequestParam(defaultValue = "30") int days) {
         
         OffsetDateTime startDate = OffsetDateTime.now().minusDays(days);
+        UUID userId = requireUserId(email);
         List<EffectiveVolumeDTO> volume = analyticsService.getEffectiveVolume(userId, startDate);
         return ResponseEntity.ok(volume);
     }
@@ -66,12 +87,87 @@ public class AnalyticsController {
      */
     @GetMapping("/summary")
     public ResponseEntity<AnalyticsSummaryDTO> getSummary(
-            @RequestParam UUID userId,
+            @AuthenticationPrincipal String email,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
 
-        System.out.println("DEBUG: Received GET /summary with params userId=" + userId + ", from=" + from + ", to=" + to);
+        UUID userId = requireUserId(email);
+        System.out.println("DEBUG: Received GET /summary with userId=" + userId + ", from=" + from + ", to=" + to);
         AnalyticsSummaryDTO summary = analyticsService.getSummary(userId, from, to);
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/recent-prs")
+    public ResponseEntity<List<RecentPrDTO>> getRecentPRs(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getRecentPRs(userId, from, to));
+    }
+
+    @GetMapping("/top-exercises")
+    public ResponseEntity<List<TopExerciseDTO>> getTopExercises(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "5") int limit) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getTopExercises(userId, limit));
+    }
+
+    @GetMapping("/weekly-volume")
+    public ResponseEntity<List<WeeklyVolumeDTO>> getWeeklyVolume(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getWeeklyVolume(userId, from, to));
+    }
+
+    @GetMapping("/muscle-distribution")
+    public ResponseEntity<List<MuscleDistributionDTO>> getMuscleDistribution(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getMuscleDistribution(userId, from, to));
+    }
+
+    @GetMapping("/training-days")
+    public ResponseEntity<ConsistencyDTO> getTrainingDays(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getTrainingDays(userId, from, to));
+    }
+
+    @GetMapping("/duration-stats")
+    public ResponseEntity<DurationStatsDTO> getDurationStats(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getDurationStats(userId, from, to));
+    }
+
+    @GetMapping("/volume-density")
+    public ResponseEntity<VolumeDensityDTO> getVolumeDensity(@AuthenticationPrincipal String email) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getVolumeDensity(userId));
+    }
+
+    @GetMapping("/training-style")
+    public ResponseEntity<TrainingStyleDTO> getTrainingStyle(
+            @AuthenticationPrincipal String email,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getTrainingStyle(userId, from, to));
+    }
+
+    @GetMapping("/weekly-rhythm")
+    public ResponseEntity<WeeklyRhythmDTO> getWeeklyRhythm(@AuthenticationPrincipal String email) {
+        UUID userId = requireUserId(email);
+        return ResponseEntity.ok(analyticsService.getWeeklyRhythm(userId));
     }
 }

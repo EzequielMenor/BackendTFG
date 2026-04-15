@@ -40,10 +40,26 @@ public class ImportService {
     this.serieRepository = serieRepository;
   }
 
-  private static final DateTimeFormatter HEVY_DATE_FORMATTER = new java.time.format.DateTimeFormatterBuilder()
+  private static final DateTimeFormatter HEVY_DATE_FORMATTER_ES = new java.time.format.DateTimeFormatterBuilder()
       .parseCaseInsensitive()
       .appendPattern("d MMM yyyy, HH:mm")
       .toFormatter(new Locale("es"));
+
+  private static final DateTimeFormatter HEVY_DATE_FORMATTER_ES_2 = new java.time.format.DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .appendPattern("dd MMM yyyy, HH:mm")
+      .toFormatter(new Locale("es"));
+
+  // Tu CSV viene con meses en inglés (Apr, Mar, etc.)
+  private static final DateTimeFormatter HEVY_DATE_FORMATTER_EN = new java.time.format.DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .appendPattern("d MMM yyyy, HH:mm")
+      .toFormatter(Locale.ENGLISH);
+
+  private static final DateTimeFormatter HEVY_DATE_FORMATTER_EN_2 = new java.time.format.DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .appendPattern("dd MMM yyyy, HH:mm")
+      .toFormatter(Locale.ENGLISH);
 
   @Transactional
   public ImportResultDTO importHevyCsv(MultipartFile file, String userEmail) {
@@ -108,7 +124,7 @@ public class ImportService {
             newWe.setExercise(exercise);
             newWe.setExerciseOrder(workoutExerciseMap.size() + 1);
             newWe.setNotes(record.get("exercise_notes"));
-            return workoutExerciseRepository.save(newWe);
+            return newWe;
           });
 
           // 3. SERIE
@@ -133,6 +149,9 @@ public class ImportService {
       }
 
       // Batch save: series en lotes de 500 según config de Hibernate
+      // Persistir primero workout_exercises (para que series tenga FK estable)
+      workoutExerciseRepository.saveAll(workoutExerciseMap.values());
+      // Luego series
       serieRepository.saveAll(allSeries);
       // Actualizar volumen total de todos los workouts
       workoutRepository.saveAll(workoutMap.values());
@@ -145,7 +164,21 @@ public class ImportService {
   }
 
   private Workout createWorkout(CSVRecord record, Profile user) {
-    LocalDateTime localDateTime = LocalDateTime.parse(record.get("start_time"), HEVY_DATE_FORMATTER);
+    String raw = record.get("start_time");
+    LocalDateTime localDateTime;
+    try {
+      localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN);
+    } catch (Exception ignored) {
+      try {
+        localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN_2);
+      } catch (Exception ignored2) {
+        try {
+          localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES);
+        } catch (Exception ignored3) {
+          localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES_2);
+        }
+      }
+    }
     Workout w = new Workout();
     w.setUser(user);
     w.setName(record.get("title"));
@@ -155,10 +188,23 @@ public class ImportService {
   }
 
   private BigDecimal parseBigDecimal(String val) {
-    return (val == null || val.isEmpty()) ? BigDecimal.ZERO : new BigDecimal(val);
+    if (val == null) return BigDecimal.ZERO;
+    String s = val.trim();
+    if (s.isEmpty()) return BigDecimal.ZERO;
+    // Hevy / CSV a veces usa coma decimal (ej: 52,5)
+    // Si trae ambos separadores, asumimos '.' miles y ',' decimal.
+    if (s.contains(",") && s.contains(".")) {
+      s = s.replace(".", "");
+    }
+    s = s.replace(',', '.');
+    return new BigDecimal(s);
   }
 
   private Integer parseInteger(String val) {
-    return (val == null || val.isEmpty()) ? 0 : Integer.parseInt(val);
+    if (val == null) return 0;
+    String s = val.trim();
+    if (s.isEmpty()) return 0;
+    s = s.replace(",", "");
+    return Integer.parseInt(s);
   }
 }

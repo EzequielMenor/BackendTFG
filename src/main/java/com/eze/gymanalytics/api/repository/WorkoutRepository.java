@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,14 +28,16 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
             OffsetDateTime end,
             Pageable pageable);
 
-    // Usuarios activos (con al menos un workout) en los últimos N días
-    @Query(value = \"SELECT COUNT(DISTINCT user_id) FROM workouts WHERE start_time >= :since\", nativeQuery = true)
-    long countDistinctActiveUsersSince(@Param(\"since\") OffsetDateTime since);
+    List<Workout> findByUserId(UUID userId);
+
+    // Usuarios activos (con al menos un workout) desde la fecha dada
+    @Query("SELECT COUNT(DISTINCT w.user) FROM Workout w WHERE w.startTime >= :since")
+    long countDistinctActiveUsersSince(@Param("since") OffsetDateTime since);
 
     // Contar workouts de un usuario en un rango de fechas
     long countByUserIdAndStartTimeBetween(UUID userId, OffsetDateTime start, OffsetDateTime end);
 
     // Duración media de workouts
-    @Query(value = \"SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (end_time - start_time)) / 60), 0) FROM workouts WHERE user_id = :userId AND start_time >= :from AND start_time <= :to AND end_time IS NOT NULL\", nativeQuery = true)
-    double avgDurationByUserAndDateRange(@Param(\"userId\") UUID userId, @Param(\"from\") OffsetDateTime from, @Param(\"to\") OffsetDateTime to);
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (end_time - start_time)) / 60), 0) FROM workouts WHERE user_id = :userId AND start_time >= :from AND start_time <= :to AND end_time IS NOT NULL", nativeQuery = true)
+    double avgDurationByUserAndDateRange(@Param("userId") UUID userId, @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
 }
