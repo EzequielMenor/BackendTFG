@@ -5,6 +5,7 @@ import com.eze.gymanalytics.api.model.Exercise;
 import com.eze.gymanalytics.api.model.Profile;
 import com.eze.gymanalytics.api.model.Routine;
 import com.eze.gymanalytics.api.model.RoutineExercise;
+import com.eze.gymanalytics.api.model.RoutineSeries;
 import com.eze.gymanalytics.api.repository.ExerciseRepository;
 import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.repository.RoutineExerciseRepository;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -76,6 +78,23 @@ public class RoutineController {
           re.setExerciseOrder(req.getExerciseOrder());
           re.setTargetSeries(req.getTargetSeries());
           re.setNotes(null);
+
+          // Create series if provided
+          if (req.getSeries() != null && !req.getSeries().isEmpty()) {
+            List<RoutineSeries> seriesList = new ArrayList<>();
+            for (int i = 0; i < req.getSeries().size(); i++) {
+              RoutineSeriesCreateRequest seriesReq = req.getSeries().get(i);
+              RoutineSeries rs = new RoutineSeries();
+              rs.setRoutineExercise(re);
+              rs.setSetOrder(seriesReq.getSetOrder() != null ? seriesReq.getSetOrder() : i + 1);
+              rs.setTargetWeight(seriesReq.getTargetWeight());
+              rs.setTargetRepsMin(seriesReq.getTargetRepsMin());
+              rs.setTargetRepsMax(seriesReq.getTargetRepsMax());
+              seriesList.add(rs);
+            }
+            re.setSeries(seriesList);
+          }
+
           return re;
         })
         .collect(Collectors.toList());
@@ -132,6 +151,21 @@ public class RoutineController {
     dto.setThumbnailUrl(re.getExercise() != null ? re.getExercise().getThumbnailUrl() : null);
     dto.setNotes(re.getNotes());
     dto.setTargetSeries(re.getTargetSeries());
+
+    // Map series if present
+    if (re.getSeries() != null && !re.getSeries().isEmpty()) {
+      List<RoutineSeriesDTO> seriesDTOs = re.getSeries().stream().map(s -> {
+        RoutineSeriesDTO sDto = new RoutineSeriesDTO();
+        sDto.setId(s.getId());
+        sDto.setSetOrder(s.getSetOrder());
+        sDto.setTargetWeight(s.getTargetWeight());
+        sDto.setTargetRepsMin(s.getTargetRepsMin());
+        sDto.setTargetRepsMax(s.getTargetRepsMax());
+        return sDto;
+      }).collect(Collectors.toList());
+      dto.setSeries(seriesDTOs);
+    }
+
     return dto;
   }
 }

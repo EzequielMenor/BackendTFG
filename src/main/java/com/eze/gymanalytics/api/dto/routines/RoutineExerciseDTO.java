@@ -1,5 +1,7 @@
 package com.eze.gymanalytics.api.dto.routines;
 
+import java.util.List;
+
 public class RoutineExerciseDTO {
   private Long id;
   private Long exerciseId;
@@ -9,6 +11,7 @@ public class RoutineExerciseDTO {
   private String thumbnailUrl;
   private String notes;
   private Integer targetSeries;
+  private List<RoutineSeriesDTO> series;
 
   public Long getId() {
     return id;
@@ -73,4 +76,7 @@ public class RoutineExerciseDTO {
   public void setTargetSeries(Integer targetSeries) {
     this.targetSeries = targetSeries;
   }
+
+  public List<RoutineSeriesDTO> getSeries() { return series; }
+  public void setSeries(List<RoutineSeriesDTO> series) { this.series = series; }
 }

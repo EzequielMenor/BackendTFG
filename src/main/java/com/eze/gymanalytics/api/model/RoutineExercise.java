@@ -2,6 +2,7 @@ package com.eze.gymanalytics.api.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "routine_exercises")
@@ -29,6 +30,10 @@ public class RoutineExercise {
 
   @Column(columnDefinition = "TEXT")
   private String notes;
+
+  @OneToMany(mappedBy = "routineExercise", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("seriesOrder ASC")
+  private List<RoutineSeries> series;
 
   // Manual getters/setters to avoid relying on Lombok processing
   public Long getId() {
@@ -77,5 +82,13 @@ public class RoutineExercise {
 
   public void setNotes(String notes) {
     this.notes = notes;
+  }
+
+  public List<RoutineSeries> getSeries() {
+    return series;
+  }
+
+  public void setSeries(List<RoutineSeries> series) {
+    this.series = series;
   }
 }
