@@ -19,6 +19,9 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
     // Paginación y ordenación por fecha descendente
     Page<Workout> findByUserIdOrderByStartTimeDesc(UUID userId, Pageable pageable);
 
+    /** Paginación admin: todos los workouts ordenados por fecha desc. */
+    Page<Workout> findAllByOrderByStartTimeDesc(Pageable pageable);
+
     Optional<Workout> findByIdAndUserEmail(Long id, String email);
 
     // Filtro por rango de fechas + Paginación

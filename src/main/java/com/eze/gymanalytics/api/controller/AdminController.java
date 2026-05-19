@@ -4,6 +4,7 @@ import com.eze.gymanalytics.api.dto.AdminExerciseDTO;
 import com.eze.gymanalytics.api.dto.AdminStatsDTO;
 import com.eze.gymanalytics.api.dto.AdminWorkoutDTO;
 import com.eze.gymanalytics.api.dto.AdminWorkoutDetailDTO;
+import com.eze.gymanalytics.api.dto.PageResponse;
 import com.eze.gymanalytics.api.dto.UserProfileDTO;
 import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.service.AdminService;
@@ -62,16 +63,18 @@ public class AdminController {
 
     /**
      * Devuelve todos los entrenamientos de la plataforma (vista admin).
-     * GET /api/admin/workouts
+     * GET /api/admin/workouts?page=0&size=20 (defaults: page=0, size=20)
      */
     @GetMapping("/workouts")
-    public ResponseEntity<?> getAllWorkouts() {
+    public ResponseEntity<?> getAllWorkouts(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
         String email = getAuthenticatedEmail();
         if (!isAdmin(email)) {
             return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
         }
-        List<AdminWorkoutDTO> workouts = adminService.getAllWorkouts();
-        return ResponseEntity.ok(workouts);
+        PageResponse<AdminWorkoutDTO> result = adminService.getAllWorkouts(page, size);
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -124,17 +127,20 @@ public class AdminController {
     // -------------------------------------------------------------------------
 
     /**
-     * Devuelve todos los ejercicios del catálogo.
-     * GET /api/admin/exercises
+     * Devuelve todos los ejercicios del catálogo con paginación y búsqueda opcional.
+     * GET /api/admin/exercises?page=0&size=20&name=press
      */
     @GetMapping("/exercises")
-    public ResponseEntity<?> getAllExercises() {
+    public ResponseEntity<?> getAllExercises(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size,
+            @RequestParam(required = false) String name) {
         String email = getAuthenticatedEmail();
         if (!isAdmin(email)) {
             return ResponseEntity.status(403).body("Acceso denegado: se requiere rol admin");
         }
-        List<AdminExerciseDTO> exercises = adminService.getAllExercises();
-        return ResponseEntity.ok(exercises);
+        PageResponse<AdminExerciseDTO> result = adminService.getAllExercises(page, size, name);
+        return ResponseEntity.ok(result);
     }
 
     /**

@@ -5,6 +5,8 @@ import com.eze.gymanalytics.api.model.Exercise;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -26,4 +28,10 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
    * Se usa en AdminService en lugar de ordenar en memoria con un Comparator.
    */
   List<Exercise> findAllByOrderByNameAsc();
+
+  /** Paginación admin: todos los ejercicios ordenados por nombre. */
+  Page<Exercise> findAllByOrderByNameAsc(Pageable pageable);
+
+  /** Paginación admin: búsqueda por nombre con ordenamiento. */
+  Page<Exercise> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

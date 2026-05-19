@@ -8,6 +8,9 @@ import com.eze.gymanalytics.api.model.WorkoutExercise;
 import com.eze.gymanalytics.api.repository.ExerciseRepository;
 import com.eze.gymanalytics.api.repository.ProfileRepository;
 import com.eze.gymanalytics.api.repository.WorkoutRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -72,6 +75,35 @@ public class AdminService {
                 .sorted((a, b) -> b.getStartTime().compareTo(a.getStartTime()))
                 .map(this::toAdminWorkoutDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Devuelve workouts paginados para el panel admin.
+     */
+    public PageResponse<AdminWorkoutDTO> getAllWorkouts(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
+        Page<Workout> workoutPage = workoutRepository.findAllByOrderByStartTimeDesc(pageRequest);
+        List<AdminWorkoutDTO> content = workoutPage.getContent().stream()
+                .map(this::toAdminWorkoutDTO)
+                .collect(Collectors.toList());
+        return new PageResponse<>(content, page, size, workoutPage.getTotalElements(), workoutPage.getTotalPages());
+    }
+
+    /**
+     * Devuelve ejercicios paginados para el panel admin, con búsqueda opcional por nombre.
+     */
+    public PageResponse<AdminExerciseDTO> getAllExercises(int page, int size, String search) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+        Page<Exercise> exercisePage;
+        if (search != null && !search.isBlank()) {
+            exercisePage = exerciseRepository.findByNameContainingIgnoreCase(search.trim(), pageRequest);
+        } else {
+            exercisePage = exerciseRepository.findAllByOrderByNameAsc(pageRequest);
+        }
+        List<AdminExerciseDTO> content = exercisePage.getContent().stream()
+                .map(this::toAdminExerciseDTO)
+                .collect(Collectors.toList());
+        return new PageResponse<>(content, page, size, exercisePage.getTotalElements(), exercisePage.getTotalPages());
     }
 
     /**

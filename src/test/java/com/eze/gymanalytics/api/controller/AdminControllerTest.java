@@ -2,6 +2,7 @@ package com.eze.gymanalytics.api.controller;
 
 import com.eze.gymanalytics.api.dto.AdminExerciseDTO;
 import com.eze.gymanalytics.api.dto.AdminStatsDTO;
+import com.eze.gymanalytics.api.dto.PageResponse;
 import com.eze.gymanalytics.api.dto.UserProfileDTO;
 import com.eze.gymanalytics.api.model.Profile;
 import com.eze.gymanalytics.api.repository.ProfileRepository;
@@ -180,6 +181,42 @@ class AdminControllerTest {
     }
 
     // ─────────────────────────────────────────────────────
+    // GET /api/admin/workouts (paginated)
+    // ─────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void getAllWorkouts_paginated_returnsPageResponse() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        when(adminService.getAllWorkouts(0, 20)).thenReturn(new PageResponse<>(List.of(), 0, 20, 45L, 3));
+
+        mockMvc.perform(get("/api/admin/workouts?page=0&size=20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(45))
+                .andExpect(jsonPath("$.totalPages").value(3));
+    }
+
+    @Test
+    @WithMockUser(username = "admin@gym.com")
+    void getAllWorkouts_defaultParams_returnsPageResponse() throws Exception {
+        Profile adminProfile = buildProfile("admin@gym.com", "admin");
+        when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
+
+        when(adminService.getAllWorkouts(0, 20)).thenReturn(new PageResponse<>(List.of(), 0, 20, 45L, 3));
+
+        mockMvc.perform(get("/api/admin/workouts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(45))
+                .andExpect(jsonPath("$.totalPages").value(3));
+    }
+
+    // ─────────────────────────────────────────────────────
     // GET /api/admin/exercises
     // ─────────────────────────────────────────────────────
 
@@ -190,12 +227,13 @@ class AdminControllerTest {
         when(profileRepository.findByEmail("admin@gym.com")).thenReturn(Optional.of(adminProfile));
 
         AdminExerciseDTO dto = buildExerciseDTO(1L, "Press Banca", "Pecho");
-        when(adminService.getAllExercises()).thenReturn(List.of(dto));
+        when(adminService.getAllExercises(0, 20, null)).thenReturn(
+                new PageResponse<>(List.of(dto), 0, 20, 1L, 1));
 
         mockMvc.perform(get("/api/admin/exercises"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Press Banca"))
-                .andExpect(jsonPath("$[0].muscleGroup").value("Pecho"));
+                .andExpect(jsonPath("$.content[0].name").value("Press Banca"))
+                .andExpect(jsonPath("$.content[0].muscleGroup").value("Pecho"));
     }
 
     @Test
