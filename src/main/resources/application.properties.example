@@ -1,14 +1,18 @@
+# ==========================================================
+# EJEMPLO — Copiar a application.properties y reemplazar
+# valores con los de tu proyecto de Supabase.
+# ==========================================================
 spring.application.name=gym-analytics-api
 
 # Conexión a Supabase (PostgreSQL)
 spring.datasource.url=jdbc:postgresql://aws-1-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
-spring.datasource.username=postgres.xiggoajtomuwtbarjtvj
-spring.datasource.password=wawfiW-warqij-9sedne
+spring.datasource.username=postgres.<tu-project-ref>
+spring.datasource.password=<tu-database-password>
 
 spring.jpa.hibernate.ddl-auto=update
 spring.sql.init.mode=always
 spring.jpa.defer-datasource-initialization=true
-spring.jpa.show-sql=true
+spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # Optimización Bulk Insert (EZE-87)
@@ -23,12 +27,9 @@ spring.servlet.multipart.max-file-size=50MB
 spring.servlet.multipart.max-request-size=50MB
 
 # CORS — lista de orígenes permitidos separados por coma
-# Añadir aquí cada origen que deba poder llamar a la API
 cors.allowed-origins=http://localhost:3000,http://localhost:4173,http://127.0.0.1:4173,http://localhost:8080
 
 # Supabase API Settings
-supabase.url=https://xiggoajtomuwtbarjtvj.supabase.co
-# Anon Key (clave publica para el SDK de Flutter en el frontend)
-supabase.anon-key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpZ2dvYWp0b211d3RiYXJqdHZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNDExODUsImV4cCI6MjA4NTcxNzE4NX0.SXg1cMSbqGHJ4fwSe5q9a_QQLQlYjsLcGLWLZauppbg
-# JWKS URI de Supabase para verificar tokens ES256 con clave pública EC
-supabase.jwks-uri=https://xiggoajtomuwtbarjtvj.supabase.co/auth/v1/.well-known/jwks.json
+supabase.url=https://<tu-project-ref>.supabase.co
+supabase.anon-key=<tu-supabase-anon-key>
+supabase.jwks-uri=https://<tu-project-ref>.supabase.co/auth/v1/.well-known/jwks.json
