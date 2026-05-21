@@ -34,3 +34,4 @@ build/
 
 # Credenciales — no committear
 src/main/resources/application.properties
+setenv.sh

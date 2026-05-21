@@ -15,8 +15,10 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -82,6 +84,7 @@ public class ImportService {
 
     List<String> failedRows = new ArrayList<>();
     int successCount = 0;
+    int skippedDuplicates = 0;
 
     try (
         BufferedReader reader = new BufferedReader(
@@ -97,10 +100,34 @@ public class ImportService {
         try {
           String startTimeStr = record.get("start_time");
           String exerciseName = record.get("exercise_title");
+          String workoutName = record.get("title");
 
-          // 1. WORKOUT
+          // Si este workout ya fue procesado en este batch (dedup), saltar la fila completa
+          if (workoutMap.containsKey(startTimeStr)) {
+            continue;
+          }
+
+          // DEDUPLICACIÓN: buscar workout existente por (user_id + día + nombre)
+          LocalDateTime localDateTime = parseDateTime(startTimeStr);
+          OffsetDateTime workoutDate = localDateTime.atOffset(ZoneOffset.UTC);
+          OffsetDateTime dayStart = workoutDate.truncatedTo(ChronoUnit.DAYS);
+          OffsetDateTime dayEnd = dayStart.plusDays(1);
+
+          Optional<Workout> existingWorkout = workoutRepository.findByUserIdAndStartTimeBetweenAndName(
+              user.getId(), dayStart, dayEnd, workoutName);
+
+          if (existingWorkout.isPresent()) {
+            skippedDuplicates++;
+            Workout existing = existingWorkout.get();
+            backfillEndTimeIfMissing(existing, record);
+            workoutMap.put(startTimeStr, existing);
+            // No crear WorkoutExercise ni Serie — el workout ya existe
+            continue;
+          }
+
+          // 1. WORKOUT (nuevo)
           Workout workout = workoutMap.computeIfAbsent(startTimeStr, k -> {
-            Workout w = createWorkout(record, user);
+            Workout w = createWorkout(record, user, localDateTime);
             w.setTotalVolume(BigDecimal.ZERO);
             return workoutRepository.save(w);
           });
@@ -156,6 +183,8 @@ public class ImportService {
       // Actualizar volumen total de todos los workouts
       workoutRepository.saveAll(workoutMap.values());
 
+      System.out.println("[ImportService] Import completed: " + successCount + " series insertadas, " + skippedDuplicates + " workouts saltados por duplicado");
+
     } catch (Exception e) {
       throw new RuntimeException("Error al leer el CSV: " + e.getMessage());
     }
@@ -163,28 +192,48 @@ public class ImportService {
     return new ImportResultDTO(successCount, failedRows.size(), failedRows);
   }
 
-  private Workout createWorkout(CSVRecord record, Profile user) {
-    String raw = record.get("start_time");
-    LocalDateTime localDateTime;
+  private LocalDateTime parseDateTime(String raw) {
     try {
-      localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN);
+      return LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN);
     } catch (Exception ignored) {
       try {
-        localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN_2);
+        return LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_EN_2);
       } catch (Exception ignored2) {
         try {
-          localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES);
+          return LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES);
         } catch (Exception ignored3) {
-          localDateTime = LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES_2);
+          return LocalDateTime.parse(raw, HEVY_DATE_FORMATTER_ES_2);
         }
       }
     }
+  }
+
+  private Workout createWorkout(CSVRecord record, Profile user, LocalDateTime localDateTime) {
     Workout w = new Workout();
     w.setUser(user);
     w.setName(record.get("title"));
     w.setStartTime(localDateTime.atOffset(ZoneOffset.UTC));
     w.setNotes(record.get("description"));
+    backfillEndTimeIfMissing(w, record);
+
     return w;
+  }
+
+  private void backfillEndTimeIfMissing(Workout workout, CSVRecord record) {
+    if (workout.getEndTime() != null) {
+      return;
+    }
+
+    // Parsear end_time del CSV (mismo formato que start_time)
+    String endTimeStr = record.get("end_time");
+    if (endTimeStr != null && !endTimeStr.trim().isEmpty()) {
+      try {
+        LocalDateTime endLocalDateTime = parseDateTime(endTimeStr);
+        workout.setEndTime(endLocalDateTime.atOffset(ZoneOffset.UTC));
+      } catch (Exception e) {
+        // Si no se puede parsear, endTime queda null (comportamiento actual)
+      }
+    }
   }
 
   private BigDecimal parseBigDecimal(String val) {

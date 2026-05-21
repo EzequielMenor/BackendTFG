@@ -43,4 +43,8 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
     // Duración media de workouts
     @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (end_time - start_time)) / 60), 0) FROM workouts WHERE user_id = :userId AND start_time >= :from AND start_time <= :to AND end_time IS NOT NULL", nativeQuery = true)
     double avgDurationByUserAndDateRange(@Param("userId") UUID userId, @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
+
+    // Deduplicación CSV: busca workout por usuario + fecha (día) + nombre
+    Optional<Workout> findByUserIdAndStartTimeBetweenAndName(
+            UUID userId, OffsetDateTime dayStart, OffsetDateTime dayEnd, String name);
 }
